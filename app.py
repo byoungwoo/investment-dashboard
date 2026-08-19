@@ -188,8 +188,8 @@ def color_score(val):
 
 styled = (
     df_display.style
-    .applymap(color_grade, subset=["Grade"])
-    .applymap(color_score, subset=["Score"])
+    .map(color_grade, subset=["Grade"])
+    .map(color_score, subset=["Score"])
     .format({"Val": "{:.0f}", "Tech": "{:.0f}", "Macro": "{:.0f}", "Score": "{:.1f}"}, na_rep="—")
 )
 
