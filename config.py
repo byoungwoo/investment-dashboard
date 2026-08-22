@@ -23,12 +23,12 @@ PORTFOLIO = {
         "growth": 4,
         "ticker": "STX",
     },
-    "ISC": {
-        "name_kr": "아이에스씨",
-        "thesis": "AI Test Socket",
-        "survival": 4,
-        "growth": 4,
-        "ticker": "095340.KQ",  # KOSDAQ
+    "VRT": {
+        "name_kr": "버티브",
+        "thesis": "AI Data Center Power & Cooling",
+        "survival": 5,
+        "growth": 5,
+        "ticker": "VRT",
     },
     "COHR": {
         "name_kr": "코히런트",
@@ -37,12 +37,12 @@ PORTFOLIO = {
         "growth": 5,
         "ticker": "COHR",
     },
-    "PLTR": {
-        "name_kr": "팔란티어",
-        "thesis": "AI Software",
-        "survival": 5,
+    "RDDT": {
+        "name_kr": "레딧",
+        "thesis": "AI Data / SNS Platform",
+        "survival": 4,
         "growth": 5,
-        "ticker": "PLTR",
+        "ticker": "RDDT",
     },
     "IREN": {
         "name_kr": "아이런",
