@@ -51,6 +51,13 @@ PORTFOLIO = {
         "growth": 5,
         "ticker": "IREN",
     },
+    "SOFI": {
+        "name_kr": "소파이",
+        "thesis": "Digital Banking / Fintech",
+        "survival": 4,
+        "growth": 5,
+        "ticker": "SOFI",
+    },
 }
 
 WEIGHTS = {
