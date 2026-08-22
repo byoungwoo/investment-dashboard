@@ -6,7 +6,7 @@ from fetcher import fetch_history, fetch_info, fetch_macro, fetch_vix, fetch_fea
 from indicators import rsi, slow_stochastic, ma_deviation
 from scorer import valuation_score, technical_score, macro_score, price_score, to_grade
 
-st.set_page_config(page_title="이병우 포트폴리오 Dashboard", page_icon="📊", layout="wide")
+st.set_page_config(page_title="LBW Portfolio", page_icon="📊", layout="centered")
 
 STARS = {5: "★★★★★", 4: "★★★★☆", 3: "★★★☆☆", 2: "★★☆☆☆", 1: "★☆☆☆☆"}
 
@@ -84,28 +84,39 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 
-st.title("📊 이병우 포트폴리오 Dashboard")
+st.title("📊 LBW Portfolio")
 
 with st.expander("📐 스코어링 공식 보기", expanded=False):
-    st.markdown("""
-**Price Score = Valuation × 50% + Technical × 30% + Macro × 20%**
+    st.markdown("**Price Score = Valuation × 50% + Technical × 30% + Macro × 20%**")
 
-| 컴포넌트 | 지표 | 비중 |
-|---|---|---|
-| **Valuation** | Forward PER + PEG (성장률 대비 멀티플) | 50% |
-| **Technical** | RSI 35% + Slow Stochastic 35% + 200MA 이격도 30% | 30% |
-| **Macro** | 10Y 금리 40% + 30Y 금리 40% + 장단기 금리차 20% | 20% |
+    st.dataframe(
+        pd.DataFrame({
+            "컴포넌트": ["Valuation", "Technical", "Macro"],
+            "지표": [
+                "Forward PER + PEG",
+                "RSI 35% + Slow Stochastic 35% + 200MA 이격도 30%",
+                "10Y 금리 40% + 30Y 금리 40% + 장단기 금리차 20%",
+            ],
+            "비중": ["50%", "30%", "20%"],
+        }),
+        hide_index=True, use_container_width=True,
+    )
 
-| 점수 | 등급 | 의미 |
-|---|---|---|
-| 88+ | **S** | 강력 매수 — 비정상적 기회, 망설이지 말 것 |
-| 78+ | **A** | 매수 — 상당히 매력적인 가격 |
-| 65+ | **B** | 분할매수 고려 — 합리적, 한 번에 다 사지 말 것 |
-| 50+ | **C** | 보유 / 관망 — 비싸다, 더 좋은 가격 기다릴 것 |
-| 0+  | **D** | 추격매수 금지 — 매우 비싸다, 신규 진입 하지 말 것 |
-
-> 핵심 원칙: **좋은 기업 ≠ 좋은 가격** — 아무리 훌륭한 기업도 비싸면 기다린다.
-""")
+    st.dataframe(
+        pd.DataFrame({
+            "점수": ["88+", "78+", "65+", "50+", "0+"],
+            "등급": ["S", "A", "B", "C", "D"],
+            "의미": [
+                "강력 매수 — 비정상적 기회, 망설이지 말 것",
+                "매수 — 상당히 매력적인 가격",
+                "분할매수 고려 — 합리적, 한 번에 다 사지 말 것",
+                "보유 / 관망 — 비싸다, 더 좋은 가격 기다릴 것",
+                "추격매수 금지 — 매우 비싸다, 신규 진입 하지 말 것",
+            ],
+        }),
+        hide_index=True, use_container_width=True,
+    )
+    st.caption("핵심 원칙: 좋은 기업 ≠ 좋은 가격 — 아무리 훌륭한 기업도 비싸면 기다린다.")
 
 # Macro 헤더
 with st.spinner("매크로 데이터 로딩 중..."):
