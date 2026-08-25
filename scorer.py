@@ -1,4 +1,5 @@
 from config import WEIGHTS, GRADE_THRESHOLDS
+from typing import Optional
 
 
 def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
@@ -70,6 +71,89 @@ def macro_score(macro: dict) -> tuple[float, str]:
     score = t10_s * 0.40 + t30_s * 0.40 + curve_s * 0.20
     detail = f"10Y={t10:.2f}% 30Y={t30:.2f}% curve={t10y2y:+.2f}%"
     return _clamp(score), detail
+
+
+def _percentile(value: float, history) -> Optional[float]:
+    if value is None or history is None:
+        return None
+    clean = history.dropna()
+    if clean.empty:
+        return None
+    return float((clean <= value).mean() * 100)
+
+
+def marks_temperature_score(
+    marks_data: dict,
+    vix: Optional[float] = None,
+    vix_history=None,
+    fear_greed: Optional[float] = None,
+) -> tuple[Optional[float], str, str, dict]:
+    components = {}
+
+    fred_specs = {
+        "hy_spread": ("HY Spread", 0.30, "lower_is_hot"),
+        "nfci": ("NFCI", 0.25, "lower_is_hot"),
+        "sloos": ("SLOOS", 0.15, "lower_is_hot"),
+    }
+
+    for key, (label, weight, direction) in fred_specs.items():
+        item = marks_data.get(key, {})
+        value = item.get("value")
+        pct = _percentile(value, item.get("history"))
+        heat = None if pct is None else (100 - pct if direction == "lower_is_hot" else pct)
+        components[key] = {
+            "label": label,
+            "weight": weight,
+            "value": value,
+            "date": item.get("date"),
+            "heat": None if heat is None else _clamp(heat),
+        }
+
+    vix_pct = _percentile(vix, vix_history)
+    components["vix"] = {
+        "label": "VIX",
+        "weight": 0.15,
+        "value": vix,
+        "date": None,
+        "heat": None if vix_pct is None else _clamp(100 - vix_pct),
+    }
+
+    components["fear_greed"] = {
+        "label": "Fear & Greed",
+        "weight": 0.15,
+        "value": fear_greed,
+        "date": None,
+        "heat": None if fear_greed is None else _clamp(fear_greed),
+    }
+
+    available = [
+        c for c in components.values()
+        if c["heat"] is not None and c["weight"] > 0
+    ]
+    if not available:
+        return None, "—", "No data", components
+
+    total_weight = sum(c["weight"] for c in available)
+    score = sum(c["heat"] * c["weight"] for c in available) / total_weight
+    score = _clamp(score)
+
+    if score < 20:
+        label = "❄️ Extreme Fear"
+    elif score < 40:
+        label = "🧊 Cool"
+    elif score < 60:
+        label = "Neutral"
+    elif score < 80:
+        label = "🔥 Warm"
+    else:
+        label = "🔥🔥 Hot"
+
+    detail = " · ".join(
+        f"{c['label']}={c['heat']:.0f}"
+        for c in components.values()
+        if c["heat"] is not None
+    )
+    return score, label, detail, components
 
 
 def price_score(val: float, tech: float, macro: float) -> float:

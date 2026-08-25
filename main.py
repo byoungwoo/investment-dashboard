@@ -4,9 +4,24 @@ from rich.text import Text
 from rich import box
 
 from config import PORTFOLIO
-from fetcher import fetch_history, fetch_info, fetch_macro
+from fetcher import (
+    fetch_history,
+    fetch_info,
+    fetch_macro,
+    fetch_vix,
+    fetch_vix_history,
+    fetch_fear_greed,
+    fetch_marks_temperature_data,
+)
 from indicators import rsi, slow_stochastic, ma_deviation
-from scorer import valuation_score, technical_score, macro_score, price_score, to_grade
+from scorer import (
+    valuation_score,
+    technical_score,
+    macro_score,
+    marks_temperature_score,
+    price_score,
+    to_grade,
+)
 
 console = Console(width=160)
 
@@ -30,7 +45,6 @@ def build_table(results: list[dict]) -> Table:
     t.add_column("성장",   min_width=7,  justify="center")
     t.add_column("Val",    min_width=4,  justify="right")
     t.add_column("Tech",   min_width=4,  justify="right")
-    t.add_column("Macro",  min_width=5,  justify="right")
     t.add_column("Score",  min_width=5,  justify="right")
     t.add_column("Grade",  min_width=5,  justify="center")
     t.add_column("Action", min_width=18, no_wrap=True)
@@ -44,7 +58,6 @@ def build_table(results: list[dict]) -> Table:
             STARS.get(r["growth"], "?"),
             f"{r['val']:.0f}" if r["val"] else "—",
             f"{r['tech']:.0f}" if r["tech"] else "—",
-            f"{r['macro']:.0f}",
             f"{r['score']:.0f}" if r["score"] else "—",
             grade_text,
             r["action"],
@@ -64,6 +77,19 @@ def main():
         console.print(f"[yellow]Macro fetch failed ({e}), using defaults[/yellow]\n")
         macro = {"t10y": 4.3, "t30y": 4.6, "t10y2y": 0.1}
         m_score, m_detail = macro_score(macro)
+
+    try:
+        fg = fetch_fear_greed()
+        mt_score, mt_label, mt_detail, _ = marks_temperature_score(
+            fetch_marks_temperature_data(),
+            vix=fetch_vix(),
+            vix_history=fetch_vix_history(),
+            fear_greed=fg["score"],
+        )
+        if mt_score is not None:
+            console.print(f"[dim]Marks Temperature: {mt_score:.0f}/100 {mt_label} ({mt_detail})[/dim]\n")
+    except Exception as e:
+        console.print(f"[yellow]Marks Temperature fetch failed ({e})[/yellow]\n")
 
     results = []
     for symbol, cfg in PORTFOLIO.items():

@@ -2,9 +2,24 @@ import streamlit as st
 import pandas as pd
 
 from config import PORTFOLIO
-from fetcher import fetch_history, fetch_info, fetch_macro, fetch_vix, fetch_fear_greed
+from fetcher import (
+    fetch_history,
+    fetch_info,
+    fetch_macro,
+    fetch_vix,
+    fetch_vix_history,
+    fetch_fear_greed,
+    fetch_marks_temperature_data,
+)
 from indicators import rsi, slow_stochastic, ma_deviation
-from scorer import valuation_score, technical_score, macro_score, price_score, to_grade
+from scorer import (
+    valuation_score,
+    technical_score,
+    macro_score,
+    marks_temperature_score,
+    price_score,
+    to_grade,
+)
 
 st.set_page_config(page_title="LBW Portfolio", page_icon="📊", layout="centered")
 
@@ -30,6 +45,16 @@ def load_vix():
 @st.cache_data(ttl=900)
 def load_fear_greed():
     return fetch_fear_greed()
+
+
+@st.cache_data(ttl=900)
+def load_vix_history():
+    return fetch_vix_history()
+
+
+@st.cache_data(ttl=900)
+def load_marks_temperature_data():
+    return fetch_marks_temperature_data()
 
 
 @st.cache_data(ttl=900)
@@ -145,6 +170,7 @@ try:
     vix_label = "😌 Low" if vix < 20 else ("⚠️ Elevated" if vix < 30 else "🔥 High")
     col5.metric("VIX", f"{vix:.1f}", vix_label)
 except Exception:
+    vix = None
     col5.metric("VIX", "—")
 
 try:
@@ -159,7 +185,38 @@ try:
     )
     col6.metric("Fear & Greed", f"{fg_score:.0f}", f"{fg_emoji} {fg_rating}")
 except Exception:
+    fg_score = None
     col6.metric("Fear & Greed", "—")
+
+try:
+    marks_data = load_marks_temperature_data()
+    vix_history = load_vix_history()
+    mt_score, mt_label, mt_detail, mt_components = marks_temperature_score(
+        marks_data,
+        vix=vix,
+        vix_history=vix_history,
+        fear_greed=fg_score,
+    )
+except Exception as e:
+    mt_score, mt_label, mt_detail, mt_components = None, "—", str(e), {}
+
+if mt_score is not None:
+    st.metric("Marks Temperature", f"{mt_score:.0f} / 100", mt_label)
+    with st.expander("Marks Temperature 구성 보기", expanded=False):
+        st.caption("높을수록 좋은 투자환경이 아니라, 위험선호/자본공급/낙관론이 뜨거운 상태입니다.")
+        component_rows = []
+        for c in mt_components.values():
+            component_rows.append({
+                "Component": c["label"],
+                "Weight": f"{c['weight'] * 100:.0f}%",
+                "Latest": "—" if c["value"] is None else f"{c['value']:.2f}",
+                "Date": c["date"] or "—",
+                "Heat": "—" if c["heat"] is None else f"{c['heat']:.0f}",
+            })
+        st.dataframe(pd.DataFrame(component_rows), hide_index=True, use_container_width=True)
+else:
+    st.metric("Marks Temperature", "—", "데이터 부족")
+    st.caption(f"Marks Temperature unavailable: {mt_detail}")
 
 st.divider()
 
@@ -176,7 +233,7 @@ with st.spinner("포트폴리오 분석 중..."):
 # 테이블
 df = pd.DataFrame(rows)
 
-display_cols = ["종목", "Thesis", "생존", "성장성", "Val", "Tech", "Macro", "Score", "Grade", "Action"]
+display_cols = ["종목", "Thesis", "생존", "성장성", "Val", "Tech", "Score", "Grade", "Action"]
 df_display = df[display_cols].copy()
 
 
@@ -201,7 +258,7 @@ styled = (
     df_display.style
     .map(color_grade, subset=["Grade"])
     .map(color_score, subset=["Score"])
-    .format({"Val": "{:.0f}", "Tech": "{:.0f}", "Macro": "{:.0f}", "Score": "{:.1f}"}, na_rep="—")
+    .format({"Val": "{:.0f}", "Tech": "{:.0f}", "Score": "{:.1f}"}, na_rep="—")
 )
 
 st.dataframe(styled, use_container_width=True, hide_index=True, height=320)
@@ -223,4 +280,4 @@ else:
     grade = detail["Grade"]
     c4.metric("Grade", grade, detail["Action"])
 
-st.caption(f"Macro: {m_detail} · 15분 캐시 적용")
+st.caption(f"Macro: {m_detail} · Marks: {mt_detail} · 15분 캐시 적용")

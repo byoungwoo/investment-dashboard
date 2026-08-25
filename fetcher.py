@@ -35,9 +35,36 @@ def _fred_latest(series_id: str):
     return None
 
 
+def _fred_history(series_id: str, limit: int = 100000) -> pd.Series:
+    params = {
+        "series_id": series_id,
+        "api_key": FRED_API_KEY,
+        "file_type": "json",
+        "sort_order": "asc",
+        "limit": limit,
+    }
+    resp = requests.get(FRED_BASE, params=params, timeout=30)
+    resp.raise_for_status()
+
+    values = []
+    dates = []
+    for obs in resp.json()["observations"]:
+        if obs["value"] == ".":
+            continue
+        dates.append(pd.to_datetime(obs["date"]))
+        values.append(float(obs["value"]))
+
+    return pd.Series(values, index=dates, name=series_id)
+
+
 def fetch_vix() -> float:
     hist = yf.Ticker("^VIX").history(period="2d")
     return float(hist["Close"].iloc[-1])
+
+
+def fetch_vix_history(period: str = "10y") -> pd.Series:
+    hist = yf.Ticker("^VIX").history(period=period)
+    return hist["Close"].dropna()
 
 
 def fetch_fear_greed() -> dict:
@@ -91,4 +118,35 @@ def fetch_macro() -> dict:
         pass
 
     result["_source"] = source
+    return result
+
+
+def fetch_marks_temperature_data() -> dict:
+    series_map = {
+        "hy_spread": "BAMLH0A0HYM2",
+        "nfci": "NFCI",
+        "sloos": "DRTSCILM",
+    }
+    result = {}
+
+    for key, series_id in series_map.items():
+        try:
+            history = _fred_history(series_id)
+            latest = history.dropna().iloc[-1]
+            latest_date = history.dropna().index[-1].date().isoformat()
+            result[key] = {
+                "series_id": series_id,
+                "value": float(latest),
+                "date": latest_date,
+                "history": history,
+            }
+        except Exception as e:
+            result[key] = {
+                "series_id": series_id,
+                "value": None,
+                "date": None,
+                "history": pd.Series(dtype=float),
+                "error": str(e),
+            }
+
     return result
