@@ -30,33 +30,12 @@ PORTFOLIO = {
         "growth": 5,
         "ticker": "VRT",
     },
-    "COHR": {
-        "name_kr": "코히런트",
-        "thesis": "Optical / Photonics",
-        "survival": 4,
-        "growth": 5,
-        "ticker": "COHR",
-    },
-    "RDDT": {
-        "name_kr": "레딧",
-        "thesis": "AI Data / SNS Platform",
-        "survival": 4,
-        "growth": 5,
-        "ticker": "RDDT",
-    },
     "IREN": {
         "name_kr": "아이런",
         "thesis": "AI Data Center",
         "survival": 3,
         "growth": 5,
         "ticker": "IREN",
-    },
-    "SOFI": {
-        "name_kr": "소파이",
-        "thesis": "Digital Banking / Fintech",
-        "survival": 4,
-        "growth": 5,
-        "ticker": "SOFI",
     },
 }
 
