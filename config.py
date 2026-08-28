@@ -16,13 +16,6 @@ PORTFOLIO = {
         "growth": 4,
         "ticker": "ABBN.SW",  # SIX Swiss Exchange (더 안정적)
     },
-    "STX": {
-        "name_kr": "씨게이트",
-        "thesis": "AI Storage / HAMR",
-        "survival": 4,
-        "growth": 4,
-        "ticker": "STX",
-    },
     "VRT": {
         "name_kr": "버티브",
         "thesis": "AI Data Center Power & Cooling",
