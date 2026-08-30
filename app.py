@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import streamlit.components.v1 as components
+import json
 
 from config import PORTFOLIO
 from fetcher import (
@@ -269,7 +271,68 @@ for col in ["Val", "Tech", "Score"]:
 
 copy_text = copy_df.to_csv(sep="\t", index=False)
 with st.expander("LLM 붙여넣기용 테이블", expanded=False):
-    st.caption("아래 내용을 전체 선택해서 복사하면 헤더 포함으로 ChatGPT 등에 바로 붙여넣을 수 있습니다.")
+    st.caption("버튼으로 복사하거나, 아래 내용을 전체 선택해서 헤더 포함으로 ChatGPT 등에 붙여넣을 수 있습니다.")
+    copy_payload = json.dumps(copy_text)
+    components.html(
+        f"""
+        <button id="copy-button" style="
+            width: 100%;
+            height: 42px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #111827;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        ">클립보드에 복사</button>
+        <div id="copy-status" style="
+            min-height: 20px;
+            margin-top: 8px;
+            color: #6b7280;
+            font-size: 13px;
+        "></div>
+        <script>
+        const text = {copy_payload};
+        const button = document.getElementById("copy-button");
+        const status = document.getElementById("copy-status");
+
+        async function fallbackCopy(value) {{
+            const textarea = document.createElement("textarea");
+            textarea.value = value;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            const copied = document.execCommand("copy");
+            document.body.removeChild(textarea);
+            return copied;
+        }}
+
+        button.addEventListener("click", async () => {{
+            try {{
+                if (navigator.clipboard && window.isSecureContext) {{
+                    await navigator.clipboard.writeText(text);
+                }} else {{
+                    const copied = await fallbackCopy(text);
+                    if (!copied) throw new Error("fallback copy failed");
+                }}
+                status.textContent = "복사 완료";
+                button.textContent = "복사 완료";
+                setTimeout(() => {{
+                    status.textContent = "";
+                    button.textContent = "클립보드에 복사";
+                }}, 1800);
+            }} catch (error) {{
+                status.textContent = "자동 복사가 안 되면 아래 텍스트를 길게 눌러 직접 복사하세요.";
+            }}
+        }});
+        </script>
+        """,
+        height=76,
+    )
     st.text_area("복사용 TSV", copy_text, height=180, label_visibility="collapsed")
 
 st.divider()
