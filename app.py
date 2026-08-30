@@ -263,6 +263,15 @@ styled = (
 
 st.dataframe(styled, use_container_width=True, hide_index=True, height=320)
 
+copy_df = df_display.copy()
+for col in ["Val", "Tech", "Score"]:
+    copy_df[col] = copy_df[col].map(lambda v: "—" if pd.isna(v) else f"{v:.1f}" if col == "Score" else f"{v:.0f}")
+
+copy_text = copy_df.to_csv(sep="\t", index=False)
+with st.expander("LLM 붙여넣기용 테이블", expanded=False):
+    st.caption("아래 내용을 전체 선택해서 복사하면 헤더 포함으로 ChatGPT 등에 바로 붙여넣을 수 있습니다.")
+    st.text_area("복사용 TSV", copy_text, height=180, label_visibility="collapsed")
+
 st.divider()
 
 # 종목별 상세
