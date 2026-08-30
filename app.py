@@ -18,8 +18,10 @@ from scorer import (
     valuation_score,
     technical_score,
     macro_score,
+    macro_status,
     marks_temperature_score,
     price_score,
+    yield_curve_status,
     to_grade,
 )
 
@@ -122,12 +124,13 @@ with st.expander("📐 스코어링 공식 보기", expanded=False):
             "지표": [
                 "Forward PER + PEG",
                 "RSI 35% + Slow Stochastic 35% + 200MA 이격도 30%",
-                "10Y 금리 40% + 30Y 금리 40% + 장단기 금리차 20%",
+                "Market Macro 80% + Fed Policy Regime 20%",
             ],
             "비중": ["50%", "30%", "20%"],
         }),
         hide_index=True, use_container_width=True,
     )
+    st.caption("Market Macro = 10Y 금리 40% + 30Y 금리 40% + 장단기 금리차 20%")
 
     st.dataframe(
         pd.DataFrame({
@@ -145,50 +148,110 @@ with st.expander("📐 스코어링 공식 보기", expanded=False):
     )
     st.caption("핵심 원칙: 좋은 기업 ≠ 좋은 가격 — 아무리 훌륭한 기업도 비싸면 기다린다.")
 
-# Macro 헤더
+# ── VIX 먼저 (macro_score stress regime 판단에 필요) ───────────────────────────
+vix = 20.0
+try:
+    vix = load_vix()
+except Exception:
+    pass
+
+# ── Macro ────────────────────────────────────────────────────────────────────────
+macro = {"t10y": None, "t30y": None}
+m_score, m_detail, m_breakdown = macro_score(macro, vix)
+
 with st.spinner("매크로 데이터 로딩 중..."):
     try:
         macro = load_macro()
-        m_score, m_detail = macro_score(macro)
-        source = macro.get("_source", "FRED")
-        if source == "yfinance":
+        m_score, m_detail, m_breakdown = macro_score(macro, vix)
+        if macro.get("_source") == "yfinance":
             st.info("FRED 타임아웃 → Yahoo Finance 금리 데이터로 대체")
     except Exception as e:
         st.error(f"FRED API 연결 실패 — 🔄 새로고침으로 재시도 ({e})")
-        macro = {"t10y": None, "t30y": None, "t10y2y": None}
-        m_score, m_detail = macro_score(macro)
 
-def fmt(val, spec=".2f", suffix="%", fallback="—"):
-    return f"{val:{spec}}{suffix}" if val is not None else fallback
-
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-col1.metric("10Y Treasury", fmt(macro.get("t10y")))
-col2.metric("30Y Treasury", fmt(macro.get("t30y")))
-col3.metric("10Y-2Y Spread", fmt(macro.get("t10y2y"), spec="+.2f"))
-col4.metric("Macro Score", f"{m_score:.0f} / 100")
-
-try:
-    vix = load_vix()
-    vix_label = "😌 Low" if vix < 20 else ("⚠️ Elevated" if vix < 30 else "🔥 High")
-    col5.metric("VIX", f"{vix:.1f}", vix_label)
-except Exception:
-    vix = None
-    col5.metric("VIX", "—")
-
+# ── Fear & Greed ─────────────────────────────────────────────────────────────────
+fg_score, fg_rating, fg_emoji = 50.0, "—", "😐"
 try:
     fg = load_fear_greed()
     fg_score = fg["score"]
     fg_rating = fg["rating"].replace("_", " ").title()
     fg_emoji = (
-        "😱" if fg_score < 25 else
-        "😟" if fg_score < 45 else
-        "😐" if fg_score < 55 else
-        "😏" if fg_score < 75 else "🤑"
+        "😱" if fg_score < 25 else "😟" if fg_score < 45 else
+        "😐" if fg_score < 55 else "😏" if fg_score < 75 else "🤑"
     )
-    col6.metric("Fear & Greed", f"{fg_score:.0f}", f"{fg_emoji} {fg_rating}")
 except Exception:
-    fg_score = None
-    col6.metric("Fear & Greed", "—")
+    pass
+
+def fmt(val, spec=".2f", suffix="%", fallback="—"):
+    return f"{val:{spec}}{suffix}" if val is not None else fallback
+
+# ── Metrics 행 ────────────────────────────────────────────────────────────────────
+vix_label = "😌 Low" if vix < 20 else ("⚠️ Elevated" if vix < 30 else "🔥 High")
+inp = m_breakdown.get("inputs", {})
+
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1.metric("10Y Treasury", fmt(macro.get("t10y")))
+col2.metric("30Y Treasury", fmt(macro.get("t30y")))
+col3.metric("FFR", fmt(inp.get("ffr"), spec=".2f"))
+col4.metric("Macro Score", f"{m_breakdown['final_score']} / 100", macro_status(m_score))
+col5.metric("VIX", f"{vix:.1f}", vix_label)
+col6.metric("Fear & Greed", f"{fg_score:.0f}", f"{fg_emoji} {fg_rating}")
+
+# ── Macro Score 산정 내역 Toggle ─────────────────────────────────────────────────
+rate_bd = m_breakdown.get("rate_detail", {})
+fed_bd  = m_breakdown.get("fed_detail",  {})
+rate_s  = m_breakdown.get("rate_score",  0)
+fed_s   = m_breakdown.get("fed_score",   0)
+rate_w  = m_breakdown.get("rate_weight", 0.80)
+fed_w   = m_breakdown.get("fed_weight",  0.20)
+final_s = m_breakdown.get("final_score", 0)
+stress  = m_breakdown.get("stress_regime", False)
+
+with st.expander("📐 Macro Score 산정 내역 (v2.3)", expanded=False):
+    regime_str = "🔴 Stress (VIX > 25)" if stress else "🟢 Normal"
+    st.caption(
+        f"VIX Regime: {regime_str}  ·  "
+        f"Rate Level {rate_w*100:.0f}% + Fed Policy Signal {fed_w*100:.0f}%  ·  "
+        f"r* = {inp.get('neutral_rate', 2.5):.1f}%  ·  "
+        f"Yield Curve: {yield_curve_status(macro)}"
+    )
+    ca, cb = st.columns(2)
+    with ca:
+        st.markdown("**Rate Level Score**")
+        st.dataframe(
+            pd.DataFrame({
+                "지표":   ["10Y Treasury", "30Y Treasury"],
+                "현재값": [fmt(inp.get("t10y")), fmt(inp.get("t30y"))],
+                "점수":   [f"{rate_bd.get('t10_s', 0):.0f}", f"{rate_bd.get('t30_s', 0):.0f}"],
+                "비중":   ["75%", "25%"],
+            }),
+            hide_index=True, use_container_width=True,
+        )
+        st.metric("Rate Level", f"{rate_s:.0f} / 100")
+    with cb:
+        st.markdown("**Fed Policy Signal**")
+        gap = fed_bd.get("gap", 0)
+        st.dataframe(
+            pd.DataFrame({
+                "지표":   ["FFR vs r*", "2Y Δ (3개월)", "TIPS 10Y"],
+                "현재값": [
+                    f"{inp.get('ffr', 0):.2f}% / r* {inp.get('neutral_rate', 2.5):.1f}% → gap {gap:+.2f}%",
+                    f"{inp.get('delta_2y', 0):+.2f}%",
+                    f"{inp.get('tips', 0):.2f}%",
+                ],
+                "점수":   [
+                    f"{fed_bd.get('ffr_s', 0):.0f}",
+                    f"{fed_bd.get('delta_s', 0):.0f}",
+                    f"{fed_bd.get('tips_s', 0):.0f}",
+                ],
+                "비중":   ["35%", "25%", "40%"],
+            }),
+            hide_index=True, use_container_width=True,
+        )
+        st.metric("Fed Policy Signal", f"{fed_s:.0f} / 100")
+    st.divider()
+    st.markdown(
+        f"**최종 = {rate_s:.0f} × {rate_w*100:.0f}% + {fed_s:.0f} × {fed_w*100:.0f}% = {final_s}점**"
+    )
 
 try:
     marks_data = load_marks_temperature_data()
@@ -352,4 +415,4 @@ else:
     grade = detail["Grade"]
     c4.metric("Grade", grade, detail["Action"])
 
-st.caption(f"Macro: {m_detail} · Marks: {mt_detail} · 15분 캐시 적용")
+st.caption(f"Macro v2.3: {m_detail} · Marks: {mt_detail} · 15분 캐시 적용")

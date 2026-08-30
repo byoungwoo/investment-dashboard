@@ -1,6 +1,9 @@
 import os
 FRED_API_KEY = os.environ.get("FRED_API_KEY", "")
 
+# FOMC SEP long-run r* estimate — update when FOMC revises neutral rate outlook
+NEUTRAL_RATE = 2.5
+
 PORTFOLIO = {
     "AVGO": {
         "name_kr": "브로드컴",

@@ -8,6 +8,8 @@ try:
 except Exception:
     from config import FRED_API_KEY
 
+from config import NEUTRAL_RATE
+
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 
 
@@ -57,6 +59,52 @@ def _fred_history(series_id: str, limit: int = 100000) -> pd.Series:
     return pd.Series(values, index=dates, name=series_id)
 
 
+def _fred_observations(series_id: str, limit: int = 80) -> list[float]:
+    """Last N valid observations for a FRED series, newest first."""
+    params = {
+        "series_id": series_id,
+        "api_key": FRED_API_KEY,
+        "file_type": "json",
+        "sort_order": "desc",
+        "limit": limit + 20,
+    }
+    resp = requests.get(FRED_BASE, params=params, timeout=30)
+    resp.raise_for_status()
+    vals = [float(o["value"]) for o in resp.json()["observations"] if o["value"] != "."]
+    return vals[:limit]
+
+
+def fetch_ffr() -> float:
+    """Effective Federal Funds Rate (FRED: DFF)."""
+    return _fred_latest("DFF")
+
+
+def fetch_2y_change(lookback: int = 65) -> float:
+    """2Y Treasury change over ~3 months (65 business days)."""
+    obs = _fred_observations("DGS2", lookback)
+    if len(obs) < 2:
+        return 0.0
+    return round(obs[0] - obs[-1], 3)
+
+
+def fetch_tips() -> float:
+    """10Y TIPS real yield (FRED: DFII10). Falls back to 10Y − breakeven."""
+    try:
+        val = _fred_latest("DFII10")
+        if val is not None:
+            return val
+    except Exception:
+        pass
+    try:
+        t10 = _fred_latest("DGS10")
+        be  = _fred_latest("T10YIE")
+        if t10 and be:
+            return round(t10 - be, 3)
+    except Exception:
+        pass
+    return 1.5
+
+
 def fetch_vix() -> float:
     hist = yf.Ticker("^VIX").history(period="2d")
     return float(hist["Close"].iloc[-1])
@@ -92,18 +140,29 @@ def fetch_macro() -> dict:
     result = {}
     source = "FRED"
 
-    # FRED 시도
-    fred_map = [("t10y", "DGS10"), ("t30y", "DGS30"), ("t10y2y", "T10Y2Y")]
+    fred_map = [("t10y", "DGS10"), ("t30y", "DGS30"), ("t10y2y", "T10Y2Y"), ("ffr", "DFF")]
     for key, series_id in fred_map:
         try:
             result[key] = _fred_latest(series_id)
         except Exception:
             result[key] = None
 
-    # FRED 실패 시 yfinance fallback (^TNX=10Y, ^TYX=30Y)
+    # 2Y 3-month direction signal
+    try:
+        result["delta_2y"] = fetch_2y_change()
+    except Exception:
+        result["delta_2y"] = 0.0
+
+    # TIPS real yield (with fallback)
+    try:
+        result["tips"] = fetch_tips()
+    except Exception:
+        result["tips"] = 1.5
+
+    # yfinance fallback for rate levels
     if result.get("t10y") is None:
         try:
-            result["t10y"] = _yf_yield("^TNX") / 10  # ^TNX는 x10 스케일
+            result["t10y"] = _yf_yield("^TNX") / 10
             source = "yfinance"
         except Exception:
             pass
@@ -113,10 +172,8 @@ def fetch_macro() -> dict:
             source = "yfinance"
         except Exception:
             pass
-    if result.get("t10y2y") is None and result.get("t10y") and result.get("t30y"):
-        # T10Y2Y 근사값: 별도 fetch 불가 시 None 유지
-        pass
 
+    result["neutral_rate"] = NEUTRAL_RATE
     result["_source"] = source
     return result
 

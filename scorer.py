@@ -1,9 +1,32 @@
-from config import WEIGHTS, GRADE_THRESHOLDS
+from config import WEIGHTS, GRADE_THRESHOLDS, NEUTRAL_RATE
 from typing import Optional
 
 
 def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
     return max(lo, min(hi, v))
+
+
+# ── Macro Score v2.3 helpers ────────────────────────────────────────────────────
+
+def _rate_level_score(t10: float, t30: float) -> tuple[float, dict]:
+    t10_s = _clamp(105 - t10 * 14)
+    t30_s = _clamp(105 - t30 * 13)
+    score = _clamp(t10_s * 0.75 + t30_s * 0.25)
+    return score, {"t10_s": round(t10_s, 1), "t30_s": round(t30_s, 1)}
+
+
+def _fed_policy_signal(ffr: float, neutral_rate: float, delta_2y: float, tips: float) -> tuple[float, dict]:
+    gap     = ffr - neutral_rate
+    ffr_s   = _clamp(60 - gap * 15)
+    delta_s = _clamp(60 - delta_2y * 45)
+    tips_s  = _clamp(75 - tips * 20)
+    score   = _clamp(ffr_s * 0.35 + delta_s * 0.25 + tips_s * 0.40)
+    return score, {
+        "ffr_s":   round(ffr_s, 1),
+        "delta_s": round(delta_s, 1),
+        "tips_s":  round(tips_s, 1),
+        "gap":     round(gap, 2),
+    }
 
 
 def valuation_score(info: dict) -> tuple[float, str]:
@@ -56,21 +79,86 @@ def technical_score(
     return _clamp(score), detail
 
 
-def macro_score(macro: dict) -> tuple[float, str]:
-    t10 = macro.get("t10y") or 4.3
-    t30 = macro.get("t30y") or 4.6
-    t10y2y = macro.get("t10y2y") or 0.0
+def macro_score(macro: dict, vix: float = 20.0) -> tuple[float, str, dict]:
+    t10          = macro.get("t10y")         or 4.3
+    t30          = macro.get("t30y")         or 4.6
+    ffr          = macro.get("ffr")          or 5.25
+    neutral_rate = macro.get("neutral_rate") or NEUTRAL_RATE
+    delta_2y     = macro.get("delta_2y")     or 0.0
+    tips         = macro.get("tips")         or 1.5
 
-    # Higher yield = lower score (risk-free competition)
-    t10_s = _clamp(105 - t10 * 14)
-    t30_s = _clamp(105 - t30 * 13)
+    # VIX > 25 → stress regime: Fed Policy Signal weight expands
+    stress = vix > 25
+    rate_w = 0.70 if stress else 0.80
+    fed_w  = 0.30 if stress else 0.20
 
-    # Yield curve: inverted = cautious
-    curve_s = _clamp(60 + t10y2y * 20)
+    rate_s, rate_bd = _rate_level_score(t10, t30)
+    fed_s, fed_bd   = _fed_policy_signal(ffr, neutral_rate, delta_2y, tips)
+    final = _clamp(rate_s * rate_w + fed_s * fed_w)
 
-    score = t10_s * 0.40 + t30_s * 0.40 + curve_s * 0.20
-    detail = f"10Y={t10:.2f}% 30Y={t30:.2f}% curve={t10y2y:+.2f}%"
-    return _clamp(score), detail
+    detail = f"10Y={t10:.2f}% FFR={ffr:.2f}% TIPS={tips:.2f}%"
+    breakdown = {
+        "rate_score":    round(rate_s, 1),
+        "fed_score":     round(fed_s, 1),
+        "rate_weight":   rate_w,
+        "fed_weight":    fed_w,
+        "stress_regime": stress,
+        "final_score":   round(final),
+        "rate_detail":   rate_bd,
+        "fed_detail":    fed_bd,
+        "inputs": {
+            "t10y": t10, "t30y": t30,
+            "ffr": ffr, "neutral_rate": neutral_rate,
+            "delta_2y": delta_2y, "tips": tips,
+            "vix": vix,
+        },
+    }
+    return final, detail, breakdown
+
+
+def macro_status(score: float) -> str:
+    if score >= 80:
+        return "🟢 Strong Risk-On"
+    if score >= 65:
+        return "🟢 Risk-On"
+    if score >= 50:
+        return "🟡 Neutral"
+    if score >= 35:
+        return "🟠 Caution"
+    return "🔴 Risk-Off"
+
+
+def yield_curve_status(macro: dict) -> str:
+    t10 = macro.get("t10y")
+    t30 = macro.get("t30y")
+    t10y2y = macro.get("t10y2y")
+
+    warnings = []
+    if t10 is not None:
+        if t10 > 4.80:
+            warnings.append("10Y Red")
+        elif t10 >= 4.50:
+            warnings.append("10Y Orange")
+
+    if t30 is not None:
+        if t30 > 5.30:
+            warnings.append("30Y Red")
+        elif t30 >= 5.00:
+            warnings.append("30Y Orange")
+
+    if t10y2y is not None:
+        if t10y2y < 0:
+            warnings.append("Curve Inverted")
+        elif t10y2y < 0.30:
+            warnings.append("Curve Red")
+        elif t10y2y < 0.50:
+            warnings.append("Curve Orange")
+
+    if any("Red" in warning or "Inverted" in warning for warning in warnings):
+        return "🔴 Red / " + " · ".join(warnings)
+    if warnings:
+        return "🟠 Orange / " + " · ".join(warnings)
+    return "🟢 Green"
 
 
 def _percentile(value: float, history) -> Optional[float]:
