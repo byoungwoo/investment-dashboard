@@ -418,18 +418,6 @@ components.html(
     const details = document.getElementById("llm-copy");
     const status = document.getElementById("copy-status");
 
-    function setFrameHeight() {{
-        const height = details.open ? document.documentElement.scrollHeight : 52;
-        if (window.Streamlit && window.Streamlit.setFrameHeight) {{
-            window.Streamlit.setFrameHeight(height);
-        }}
-        window.parent.postMessage({{
-            isStreamlitMessage: true,
-            type: "streamlit:setFrameHeight",
-            height: height
-        }}, "*");
-    }}
-
     async function fallbackCopy(value) {{
         const textarea = document.createElement("textarea");
         textarea.value = value;
@@ -463,12 +451,10 @@ components.html(
 
     details.addEventListener("toggle", () => {{
         if (details.open) copyTable();
-        setFrameHeight();
     }});
-    setFrameHeight();
     </script>
     """,
-    height=52,
+    height=285,
 )
 
 st.divider()
