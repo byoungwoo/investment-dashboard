@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 import json
+import html
 
 from config import PORTFOLIO
 from fetcher import (
@@ -26,6 +27,17 @@ from scorer import (
 )
 
 st.set_page_config(page_title="LBW Portfolio", page_icon="📊", layout="centered")
+
+st.markdown(
+    """
+    <style>
+    .stHeading a {
+        display: none;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 STARS = {5: "★★★★★", 4: "★★★★☆", 3: "★★★☆☆", 2: "★★☆☆☆", 1: "★☆☆☆☆"}
 
@@ -333,70 +345,131 @@ for col in ["Val", "Tech", "Score"]:
     copy_df[col] = copy_df[col].map(lambda v: "—" if pd.isna(v) else f"{v:.1f}" if col == "Score" else f"{v:.0f}")
 
 copy_text = copy_df.to_csv(sep="\t", index=False)
-with st.expander("LLM 붙여넣기용 테이블", expanded=False):
-    st.caption("버튼으로 복사하거나, 아래 내용을 전체 선택해서 헤더 포함으로 ChatGPT 등에 붙여넣을 수 있습니다.")
-    copy_payload = json.dumps(copy_text)
-    components.html(
-        f"""
-        <button id="copy-button" style="
-            width: 100%;
-            height: 42px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            background: #111827;
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        ">클립보드에 복사</button>
-        <div id="copy-status" style="
-            min-height: 20px;
-            margin-top: 8px;
-            color: #6b7280;
-            font-size: 13px;
-        "></div>
-        <script>
-        const text = {copy_payload};
-        const button = document.getElementById("copy-button");
-        const status = document.getElementById("copy-status");
+copy_payload = json.dumps(copy_text)
+copy_html = html.escape(copy_text)
+components.html(
+    f"""
+    <style>
+    body {{
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #31333f;
+    }}
+    details {{
+        border: 1px solid rgba(49, 51, 63, 0.2);
+        border-radius: 8px;
+        background: white;
+    }}
+    summary {{
+        min-height: 42px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 16px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        user-select: none;
+    }}
+    summary::marker {{
+        color: #6b7280;
+    }}
+    #copy-status {{
+        margin-left: auto;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 400;
+    }}
+    .content {{
+        padding: 0 16px 14px;
+    }}
+    .caption {{
+        margin: 2px 0 8px;
+        color: #6b7280;
+        font-size: 13px;
+    }}
+    textarea {{
+        width: 100%;
+        height: 180px;
+        box-sizing: border-box;
+        border: 1px solid rgba(49, 51, 63, 0.2);
+        border-radius: 8px;
+        padding: 10px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #111827;
+        background: #f9fafb;
+    }}
+    </style>
+    <details id="llm-copy">
+        <summary>
+            LLM 붙여넣기용 테이블
+            <span id="copy-status"></span>
+        </summary>
+        <div class="content">
+            <div class="caption">클릭하면 헤더 포함 TSV가 자동으로 복사됩니다. 자동 복사가 안 되면 아래 내용을 직접 복사하세요.</div>
+            <textarea readonly>{copy_html}</textarea>
+        </div>
+    </details>
+    <script>
+    const text = {copy_payload};
+    const details = document.getElementById("llm-copy");
+    const status = document.getElementById("copy-status");
 
-        async function fallbackCopy(value) {{
-            const textarea = document.createElement("textarea");
-            textarea.value = value;
-            textarea.setAttribute("readonly", "");
-            textarea.style.position = "fixed";
-            textarea.style.left = "-9999px";
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            const copied = document.execCommand("copy");
-            document.body.removeChild(textarea);
-            return copied;
+    function setFrameHeight() {{
+        const height = details.open ? document.documentElement.scrollHeight : 52;
+        if (window.Streamlit && window.Streamlit.setFrameHeight) {{
+            window.Streamlit.setFrameHeight(height);
         }}
+        window.parent.postMessage({{
+            isStreamlitMessage: true,
+            type: "streamlit:setFrameHeight",
+            height: height
+        }}, "*");
+    }}
 
-        button.addEventListener("click", async () => {{
-            try {{
-                if (navigator.clipboard && window.isSecureContext) {{
-                    await navigator.clipboard.writeText(text);
-                }} else {{
-                    const copied = await fallbackCopy(text);
-                    if (!copied) throw new Error("fallback copy failed");
-                }}
-                status.textContent = "복사 완료";
-                button.textContent = "복사 완료";
-                setTimeout(() => {{
-                    status.textContent = "";
-                    button.textContent = "클립보드에 복사";
-                }}, 1800);
-            }} catch (error) {{
-                status.textContent = "자동 복사가 안 되면 아래 텍스트를 길게 눌러 직접 복사하세요.";
+    async function fallbackCopy(value) {{
+        const textarea = document.createElement("textarea");
+        textarea.value = value;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return copied;
+    }}
+
+    async function copyTable() {{
+        try {{
+            if (navigator.clipboard && window.isSecureContext) {{
+                await navigator.clipboard.writeText(text);
+            }} else {{
+                const copied = await fallbackCopy(text);
+                if (!copied) throw new Error("fallback copy failed");
             }}
-        }});
-        </script>
-        """,
-        height=76,
-    )
-    st.text_area("복사용 TSV", copy_text, height=180, label_visibility="collapsed")
+            status.textContent = "복사 완료";
+            setTimeout(() => {{
+                status.textContent = "";
+            }}, 1800);
+        }} catch (error) {{
+            status.textContent = "직접 복사 필요";
+        }}
+    }}
+
+    details.addEventListener("toggle", () => {{
+        if (details.open) copyTable();
+        setFrameHeight();
+    }});
+    setFrameHeight();
+    </script>
+    """,
+    height=52,
+)
 
 st.divider()
 
