@@ -85,6 +85,7 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
     base = {
         "종목": f"{symbol} ({cfg.get('name_kr', '')})",
         "Thesis": cfg["thesis"],
+        "역할": cfg.get("role", "—"),
         "생존": STARS.get(cfg["survival"], "?"),
         "성장성": STARS.get(cfg["growth"], "?"),
         "Val": None,
@@ -93,6 +94,7 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
         "Score": None,
         "Grade": "—",
         "Action": "—",
+        "_note": cfg.get("note", ""),
         "_val_detail": "",
         "_tech_detail": "",
         "_error": None,
@@ -310,7 +312,7 @@ with st.spinner("포트폴리오 분석 중..."):
 # 테이블
 df = pd.DataFrame(rows)
 
-display_cols = ["종목", "Thesis", "생존", "성장성", "Val", "Tech", "Score", "Grade", "Action"]
+display_cols = ["종목", "역할", "Thesis", "생존", "성장성", "Val", "Tech", "Score", "Grade", "Action"]
 df_display = df[display_cols].copy()
 
 
@@ -467,6 +469,11 @@ detail = next(r for r in rows if r["종목"] == selected)
 if detail["_error"]:
     st.error(f"데이터 오류: {detail['_error']}")
 else:
+    st.markdown(f"**역할**  \n{detail['역할']}")
+    st.markdown(f"**Thesis**  \n{detail['Thesis']}")
+    if detail["_note"]:
+        st.info(detail["_note"])
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Valuation", f"{detail['Val'] or '—'}", detail["_val_detail"])
     c2.metric("Technical", f"{detail['Tech'] or '—'}", detail["_tech_detail"])

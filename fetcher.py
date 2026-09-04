@@ -136,6 +136,11 @@ def _yf_yield(ticker: str) -> float:
     return float(hist["Close"].iloc[-1])
 
 
+def _normalize_yf_yield(value: float) -> float:
+    """Yahoo Treasury tickers may return either 4.7 or 47 style values."""
+    return value / 10 if value > 20 else value
+
+
 def fetch_macro() -> dict:
     result = {}
     source = "FRED"
@@ -162,13 +167,13 @@ def fetch_macro() -> dict:
     # yfinance fallback for rate levels
     if result.get("t10y") is None:
         try:
-            result["t10y"] = _yf_yield("^TNX") / 10
+            result["t10y"] = _normalize_yf_yield(_yf_yield("^TNX"))
             source = "yfinance"
         except Exception:
             pass
     if result.get("t30y") is None:
         try:
-            result["t30y"] = _yf_yield("^TYX") / 10
+            result["t30y"] = _normalize_yf_yield(_yf_yield("^TYX"))
             source = "yfinance"
         except Exception:
             pass

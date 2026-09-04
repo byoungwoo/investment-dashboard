@@ -18,8 +18,10 @@ from scorer import (
     valuation_score,
     technical_score,
     macro_score,
+    macro_status,
     marks_temperature_score,
     price_score,
+    yield_curve_status,
     to_grade,
 )
 
@@ -40,6 +42,7 @@ def build_table(results: list[dict]) -> Table:
     t = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style="bold white on blue",
               expand=False, padding=(0, 1))
     t.add_column("종목",   min_width=5,  style="bold cyan")
+    t.add_column("역할",   min_width=18, no_wrap=True)
     t.add_column("Thesis", min_width=20, no_wrap=True)
     t.add_column("생존",   min_width=7,  justify="center")
     t.add_column("성장",   min_width=7,  justify="center")
@@ -53,6 +56,7 @@ def build_table(results: list[dict]) -> Table:
         grade_text = Text(r["grade"], style=GRADE_STYLE.get(r["grade"], "white"))
         t.add_row(
             r["symbol"],
+            r["role"],
             r["thesis"],
             STARS.get(r["survival"], "?"),
             STARS.get(r["growth"], "?"),
@@ -71,12 +75,21 @@ def main():
     # Macro (shared across all tickers)
     try:
         macro = fetch_macro()
-        m_score, m_detail = macro_score(macro)
-        console.print(f"[dim]Macro: {m_detail}[/dim]\n")
+        vix = fetch_vix()
+        m_score, m_detail, m_breakdown = macro_score(macro, vix)
+        console.print(
+            f"[dim]Macro: {m_score:.0f}/100 {macro_status(m_score)} "
+            f"({m_detail})[/dim]"
+        )
+        console.print(
+            f"[dim]10Y={macro.get('t10y', 0):.2f}% · "
+            f"30Y={macro.get('t30y', 0):.2f}% · "
+            f"Yield Curve {yield_curve_status(macro)}[/dim]\n"
+        )
     except Exception as e:
         console.print(f"[yellow]Macro fetch failed ({e}), using defaults[/yellow]\n")
-        macro = {"t10y": 4.3, "t30y": 4.6, "t10y2y": 0.1}
-        m_score, m_detail = macro_score(macro)
+        macro = {"t10y": 4.3, "t30y": 4.6, "t10y2y": 0.1, "ffr": 5.25}
+        m_score, m_detail, m_breakdown = macro_score(macro)
 
     try:
         fg = fetch_fear_greed()
@@ -97,6 +110,7 @@ def main():
         row = {
             "symbol": symbol,
             "thesis": cfg["thesis"],
+            "role": cfg.get("role", "—"),
             "survival": cfg["survival"],
             "growth": cfg["growth"],
             "macro": m_score,
