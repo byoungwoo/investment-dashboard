@@ -42,8 +42,6 @@ def build_table(results: list[dict]) -> Table:
     t = Table(box=box.SIMPLE_HEAVY, show_header=True, header_style="bold white on blue",
               expand=False, padding=(0, 1))
     t.add_column("종목",   min_width=5,  style="bold cyan")
-    t.add_column("역할",   min_width=18, no_wrap=True)
-    t.add_column("Thesis", min_width=20, no_wrap=True)
     t.add_column("생존",   min_width=7,  justify="center")
     t.add_column("성장",   min_width=7,  justify="center")
     t.add_column("Val",    min_width=4,  justify="right")
@@ -51,13 +49,13 @@ def build_table(results: list[dict]) -> Table:
     t.add_column("Score",  min_width=5,  justify="right")
     t.add_column("Grade",  min_width=5,  justify="center")
     t.add_column("Action", min_width=18, no_wrap=True)
+    t.add_column("역할",   min_width=18, no_wrap=True)
+    t.add_column("Thesis", min_width=20, no_wrap=True)
 
     for r in results:
         grade_text = Text(r["grade"], style=GRADE_STYLE.get(r["grade"], "white"))
         t.add_row(
             r["symbol"],
-            r["role"],
-            r["thesis"],
             STARS.get(r["survival"], "?"),
             STARS.get(r["growth"], "?"),
             f"{r['val']:.0f}" if r["val"] else "—",
@@ -65,6 +63,8 @@ def build_table(results: list[dict]) -> Table:
             f"{r['score']:.0f}" if r["score"] else "—",
             grade_text,
             r["action"],
+            r["role"],
+            r["thesis"],
         )
     return t
 

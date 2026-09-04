@@ -312,7 +312,7 @@ with st.spinner("포트폴리오 분석 중..."):
 # 테이블
 df = pd.DataFrame(rows)
 
-display_cols = ["종목", "역할", "Thesis", "생존", "성장성", "Val", "Tech", "Score", "Grade", "Action"]
+display_cols = ["종목", "생존", "성장성", "Val", "Tech", "Score", "Grade", "Action", "역할", "Thesis"]
 df_display = df[display_cols].copy()
 
 
