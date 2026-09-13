@@ -1,9 +1,20 @@
-from config import WEIGHTS, GRADE_THRESHOLDS, NEUTRAL_RATE
+import math
 from typing import Optional
+
+from config import WEIGHTS, GRADE_THRESHOLDS, NEUTRAL_RATE
 
 
 def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
+    if not math.isfinite(v):
+        raise ValueError("cannot clamp a non-finite value")
     return max(lo, min(hi, v))
+
+
+def _is_finite(v: object) -> bool:
+    try:
+        return math.isfinite(v)
+    except (TypeError, ValueError):
+        return False
 
 
 # ── Macro Score v2.3 helpers ────────────────────────────────────────────────────
@@ -58,7 +69,19 @@ def technical_score(
     stoch_k: float,
     stoch_d: float,
     ma: dict,
-) -> tuple[float, str]:
+) -> tuple[Optional[float], str]:
+    dev200 = ma.get("dev200")
+    missing = []
+    if not _is_finite(rsi_val):
+        missing.append("RSI")
+    if not (_is_finite(stoch_k) and _is_finite(stoch_d)):
+        missing.append("Stoch")
+    if not _is_finite(dev200):
+        missing.append("200MA")
+
+    if missing:
+        return None, f"N/A: {', '.join(missing)}"
+
     # RSI: oversold(30-) = high, overbought(70+) = low
     rsi_s = _clamp(95 - (rsi_val - 20) * 1.25)
 
@@ -67,7 +90,6 @@ def technical_score(
     stoch_s = _clamp(95 - avg_stoch * 0.9)
 
     # Distance from 200MA: below 200MA = attractive
-    dev200 = ma["dev200"]
     ma_s = _clamp(65 - dev200 * 0.9)
 
     # Golden cross bonus
@@ -244,7 +266,9 @@ def marks_temperature_score(
     return score, label, detail, components
 
 
-def price_score(val: float, tech: float, macro: float) -> float:
+def price_score(val: float, tech: Optional[float], macro: float) -> Optional[float]:
+    if tech is None:
+        return None
     return (
         val * WEIGHTS["valuation"]
         + tech * WEIGHTS["technical"]
@@ -252,7 +276,9 @@ def price_score(val: float, tech: float, macro: float) -> float:
     )
 
 
-def to_grade(score: float) -> tuple[str, str]:
+def to_grade(score: Optional[float]) -> tuple[str, str]:
+    if score is None:
+        return "N/A", "N/A"
     for threshold, grade, action in GRADE_THRESHOLDS:
         if score >= threshold:
             return grade, action

@@ -58,9 +58,9 @@ def build_table(results: list[dict]) -> Table:
             r["symbol"],
             STARS.get(r["survival"], "?"),
             STARS.get(r["growth"], "?"),
-            f"{r['val']:.0f}" if r["val"] else "—",
-            f"{r['tech']:.0f}" if r["tech"] else "—",
-            f"{r['score']:.0f}" if r["score"] else "—",
+            f"{r['val']:.0f}" if r["val"] is not None else "N/A",
+            f"{r['tech']:.0f}" if r["tech"] is not None else "N/A",
+            f"{r['score']:.0f}" if r["score"] is not None else "N/A",
             grade_text,
             r["action"],
             r["role"],
@@ -131,16 +131,19 @@ def main():
                 *slow_stochastic(hist["High"], hist["Low"], closes),
                 ma_deviation(closes),
             )
-            # valuation N/A(50=neutral)이면 tech+macro만으로 판단
-            effective_val = v_score if v_detail != "N/A" else None
-            s = price_score(
-                effective_val if effective_val is not None else 50,
-                t_score, m_score,
-            )
-            grade, action = to_grade(s)
-
-            row.update({"val": v_score, "tech": t_score, "score": s,
-                         "grade": grade, "action": action})
+            if t_score is None:
+                row.update({"val": v_score, "tech": None, "score": None,
+                            "grade": "N/A", "action": "N/A"})
+            else:
+                # valuation N/A(50=neutral)이면 tech+macro만으로 판단
+                effective_val = v_score if v_detail != "N/A" else None
+                s = price_score(
+                    effective_val if effective_val is not None else 50,
+                    t_score, m_score,
+                )
+                grade, action = to_grade(s)
+                row.update({"val": v_score, "tech": t_score, "score": s,
+                            "grade": grade, "action": action})
             console.print(f"[dim]  {symbol:<6} val={v_detail}  tech={t_detail}[/dim]")
         except Exception as e:
             row["action"] = f"ERR: {e}"

@@ -108,17 +108,23 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
             *slow_stochastic(hist["High"], hist["Low"], closes),
             ma_deviation(closes),
         )
+        base.update({
+            "Val": round(v_score),
+            "Tech": None if t_score is None else round(t_score),
+            "_val_detail": v_detail,
+            "_tech_detail": t_detail,
+        })
+        if t_score is None:
+            base.update({"Score": None, "Grade": "N/A", "Action": "N/A"})
+            return base
+
         effective_val = v_score if v_detail != "N/A" else 50
         s = price_score(effective_val, t_score, m_score)
         grade, action = to_grade(s)
         base.update({
-            "Val": round(v_score),
-            "Tech": round(t_score),
             "Score": round(s, 1),
             "Grade": grade,
             "Action": action,
-            "_val_detail": v_detail,
-            "_tech_detail": t_detail,
         })
     except Exception as e:
         base["_error"] = str(e)
@@ -322,7 +328,7 @@ def color_grade(val):
 
 
 def color_score(val):
-    if val is None:
+    if pd.isna(val):
         return ""
     if val >= 78:
         return "color: #4ade80"
@@ -337,14 +343,14 @@ styled = (
     df_display.style
     .map(color_grade, subset=["Grade"])
     .map(color_score, subset=["Score"])
-    .format({"Val": "{:.0f}", "Tech": "{:.0f}", "Score": "{:.1f}"}, na_rep="—")
+    .format({"Val": "{:.0f}", "Tech": "{:.0f}", "Score": "{:.1f}"}, na_rep="N/A")
 )
 
 st.dataframe(styled, use_container_width=True, hide_index=True, height=320)
 
 copy_df = df_display.copy()
 for col in ["Val", "Tech", "Score"]:
-    copy_df[col] = copy_df[col].map(lambda v: "—" if pd.isna(v) else f"{v:.1f}" if col == "Score" else f"{v:.0f}")
+    copy_df[col] = copy_df[col].map(lambda v: "N/A" if pd.isna(v) else f"{v:.1f}" if col == "Score" else f"{v:.0f}")
 
 copy_text = copy_df.to_csv(sep="\t", index=False)
 copy_payload = json.dumps(copy_text)
@@ -475,9 +481,9 @@ else:
         st.info(detail["_note"])
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Valuation", f"{detail['Val'] or '—'}", detail["_val_detail"])
-    c2.metric("Technical", f"{detail['Tech'] or '—'}", detail["_tech_detail"])
-    c3.metric("Score", f"{detail['Score'] or '—'}")
+    c1.metric("Valuation", "—" if detail["Val"] is None else f"{detail['Val']}", detail["_val_detail"])
+    c2.metric("Technical", "N/A" if detail["Tech"] is None else f"{detail['Tech']}", detail["_tech_detail"])
+    c3.metric("Score", "N/A" if detail["Score"] is None else f"{detail['Score']}")
     grade = detail["Grade"]
     c4.metric("Grade", grade, detail["Action"])
 
