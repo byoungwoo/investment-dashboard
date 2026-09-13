@@ -91,16 +91,38 @@ def main():
         macro = {"t10y": 4.3, "t30y": 4.6, "t10y2y": 0.1, "ffr": 5.25}
         m_score, m_detail, m_breakdown = macro_score(macro)
 
+    marks_data = {}
+    marks_vix = None
+    marks_vix_history = None
+    marks_fear_greed = None
     try:
-        fg = fetch_fear_greed()
+        marks_data = fetch_marks_temperature_data()
+    except Exception:
+        pass
+    try:
+        marks_vix = fetch_vix()
+    except Exception:
+        pass
+    try:
+        marks_vix_history = fetch_vix_history()
+    except Exception:
+        pass
+    try:
+        marks_fear_greed = fetch_fear_greed()["score"]
+    except Exception:
+        pass
+
+    try:
         mt_score, mt_label, mt_detail, _ = marks_temperature_score(
-            fetch_marks_temperature_data(),
-            vix=fetch_vix(),
-            vix_history=fetch_vix_history(),
-            fear_greed=fg["score"],
+            marks_data,
+            vix=marks_vix,
+            vix_history=marks_vix_history,
+            fear_greed=marks_fear_greed,
         )
         if mt_score is not None:
             console.print(f"[dim]Marks Temperature: {mt_score:.0f}/100 {mt_label} ({mt_detail})[/dim]\n")
+        else:
+            console.print(f"[yellow]Marks Temperature: N/A ({mt_detail})[/yellow]\n")
     except Exception as e:
         console.print(f"[yellow]Marks Temperature fetch failed ({e})[/yellow]\n")
 

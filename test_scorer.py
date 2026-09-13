@@ -1,7 +1,15 @@
 import math
 import unittest
 
-from scorer import _clamp, price_score, technical_score, to_grade
+import pandas as pd
+
+from scorer import (
+    _clamp,
+    marks_temperature_score,
+    price_score,
+    technical_score,
+    to_grade,
+)
 
 
 class TechnicalScoreTest(unittest.TestCase):
@@ -85,6 +93,100 @@ class ClampTest(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     _clamp(value)
+
+
+class MarksTemperatureScoreTest(unittest.TestCase):
+    def setUp(self):
+        self.history = pd.Series([10.0, 30.0, 40.0, 50.0, 60.0])
+
+    def marks_data(self):
+        return {
+            key: {
+                "value": 20.0,
+                "date": "2026-09-01",
+                "history": self.history.copy(),
+            }
+            for key in ("hy_spread", "nfci", "sloos")
+        }
+
+    def test_all_components_keep_existing_fixed_weight_score(self):
+        score, label, detail, components = marks_temperature_score(
+            self.marks_data(),
+            vix=20.0,
+            vix_history=self.history,
+            fear_greed=60.0,
+        )
+
+        self.assertAlmostEqual(score, 77.0)
+        self.assertEqual(label, "🔥 Warm")
+        self.assertEqual(
+            detail,
+            "HY Spread=80 · NFCI=80 · SLOOS=80 · VIX=80 · Fear & Greed=60",
+        )
+        self.assertAlmostEqual(sum(c["weight"] for c in components.values()), 1.0)
+
+    def test_any_missing_required_component_returns_na(self):
+        cases = [
+            ("hy_spread", "HY Spread", 70),
+            ("nfci", "NFCI", 75),
+            ("sloos", "SLOOS", 85),
+            ("vix", "VIX", 85),
+            ("fear_greed", "Fear & Greed", 85),
+        ]
+
+        for missing_key, missing_label, expected_coverage in cases:
+            with self.subTest(missing=missing_label):
+                marks_data = self.marks_data()
+                vix = 20.0
+                fear_greed = 60.0
+                if missing_key in marks_data:
+                    marks_data[missing_key]["value"] = math.nan
+                elif missing_key == "vix":
+                    vix = math.inf
+                else:
+                    fear_greed = None
+
+                score, label, detail, _ = marks_temperature_score(
+                    marks_data,
+                    vix=vix,
+                    vix_history=self.history,
+                    fear_greed=fear_greed,
+                )
+
+                self.assertIsNone(score)
+                self.assertEqual(label, "N/A")
+                self.assertEqual(
+                    detail,
+                    f"데이터 가용률: {expected_coverage}% · 누락: {missing_label}",
+                )
+
+    def test_partial_30_percent_data_is_not_reweighted(self):
+        marks_data = {
+            key: {
+                "value": None,
+                "date": None,
+                "history": pd.Series(dtype=float),
+            }
+            for key in ("hy_spread", "nfci", "sloos")
+        }
+
+        score, label, detail, components = marks_temperature_score(
+            marks_data,
+            vix=20.0,
+            vix_history=self.history,
+            fear_greed=60.0,
+        )
+
+        self.assertIsNone(score)
+        self.assertEqual(label, "N/A")
+        self.assertEqual(
+            detail,
+            "데이터 가용률: 30% · 누락: HY Spread, NFCI, SLOOS",
+        )
+        self.assertEqual(components["vix"]["heat"], 80.0)
+        self.assertEqual(components["fear_greed"]["heat"], 60.0)
+        self.assertEqual(components["vix"]["weight"], 0.15)
+        self.assertEqual(components["fear_greed"]["weight"], 0.15)
 
 
 if __name__ == "__main__":

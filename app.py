@@ -172,8 +172,10 @@ with st.expander("📐 스코어링 공식 보기", expanded=False):
 
 # ── VIX 먼저 (macro_score stress regime 판단에 필요) ───────────────────────────
 vix = 20.0
+marks_vix = None
 try:
     vix = load_vix()
+    marks_vix = vix
 except Exception:
     pass
 
@@ -191,7 +193,7 @@ with st.spinner("매크로 데이터 로딩 중..."):
         st.error(f"FRED API 연결 실패 — 🔄 새로고침으로 재시도 ({e})")
 
 # ── Fear & Greed ─────────────────────────────────────────────────────────────────
-fg_score, fg_rating, fg_emoji = 50.0, "—", "😐"
+fg_score, fg_rating, fg_emoji = None, "—", "😐"
 try:
     fg = load_fear_greed()
     fg_score = fg["score"]
@@ -216,7 +218,11 @@ col2.metric("30Y Treasury", fmt(macro.get("t30y")))
 col3.metric("FFR", fmt(inp.get("ffr"), spec=".2f"))
 col4.metric("Macro Score", f"{m_breakdown['final_score']} / 100", macro_status(m_score))
 col5.metric("VIX", f"{vix:.1f}", vix_label)
-col6.metric("Fear & Greed", f"{fg_score:.0f}", f"{fg_emoji} {fg_rating}")
+col6.metric(
+    "Fear & Greed",
+    "N/A" if fg_score is None else f"{fg_score:.0f}",
+    f"{fg_emoji} {fg_rating}",
+)
 
 # ── Macro Score 산정 내역 Toggle ─────────────────────────────────────────────────
 rate_bd = m_breakdown.get("rate_detail", {})
@@ -276,12 +282,20 @@ with st.expander("📐 Macro Score 산정 내역 (v2.3)", expanded=False):
         f"**최종 = {rate_s:.0f} × {rate_w*100:.0f}% + {fed_s:.0f} × {fed_w*100:.0f}% = {final_s}점**"
     )
 
+marks_data = {}
+vix_history = None
 try:
     marks_data = load_marks_temperature_data()
+except Exception:
+    pass
+try:
     vix_history = load_vix_history()
+except Exception:
+    pass
+try:
     mt_score, mt_label, mt_detail, mt_components = marks_temperature_score(
         marks_data,
-        vix=vix,
+        vix=marks_vix,
         vix_history=vix_history,
         fear_greed=fg_score,
     )
@@ -303,8 +317,8 @@ if mt_score is not None:
             })
         st.dataframe(pd.DataFrame(component_rows), hide_index=True, use_container_width=True)
 else:
-    st.metric("Marks Temperature", "—", "데이터 부족")
-    st.caption(f"Marks Temperature unavailable: {mt_detail}")
+    st.metric("Marks Temperature", "N/A", "데이터 부족")
+    st.caption(mt_detail)
 
 st.divider()
 

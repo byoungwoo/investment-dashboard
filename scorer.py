@@ -184,9 +184,10 @@ def yield_curve_status(macro: dict) -> str:
 
 
 def _percentile(value: float, history) -> Optional[float]:
-    if value is None or history is None:
+    if not _is_finite(value) or history is None:
         return None
     clean = history.dropna()
+    clean = clean[clean.map(_is_finite)]
     if clean.empty:
         return None
     return float((clean <= value).mean() * 100)
@@ -233,17 +234,25 @@ def marks_temperature_score(
         "weight": 0.15,
         "value": fear_greed,
         "date": None,
-        "heat": None if fear_greed is None else _clamp(fear_greed),
+        "heat": None if not _is_finite(fear_greed) else _clamp(fear_greed),
     }
 
     available = [
         c for c in components.values()
         if c["heat"] is not None and c["weight"] > 0
     ]
-    if not available:
-        return None, "—", "No data", components
-
     total_weight = sum(c["weight"] for c in available)
+    missing = [
+        c["label"] for c in components.values()
+        if c["heat"] is None and c["weight"] > 0
+    ]
+    if missing:
+        detail = (
+            f"데이터 가용률: {total_weight * 100:.0f}% · "
+            f"누락: {', '.join(missing)}"
+        )
+        return None, "N/A", detail, components
+
     score = sum(c["heat"] * c["weight"] for c in available) / total_weight
     score = _clamp(score)
 
