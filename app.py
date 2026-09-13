@@ -144,13 +144,15 @@ with st.expander("📐 스코어링 공식 보기", expanded=False):
             "지표": [
                 "Forward PER + PEG",
                 "RSI 35% + Slow Stochastic 35% + 200MA 이격도 30%",
-                "Market Macro 80% + Fed Policy Regime 20%",
+                "Normal: Rate Level 80% + Fed Policy Signal 20% / VIX > 25: 70% + 30%",
             ],
             "비중": ["50%", "30%", "20%"],
         }),
         hide_index=True, use_container_width=True,
     )
-    st.caption("Market Macro = 10Y 금리 40% + 30Y 금리 40% + 장단기 금리차 20%")
+    st.caption("Rate Level = 10Y 75% + 30Y 25%")
+    st.caption("Fed Policy Signal = FFR vs r* 35% + 2Y 3개월 변화 25% + TIPS 10Y 40%")
+    st.caption("장단기 금리차는 점수 구성요소가 아니며 상태 경고에만 사용됩니다.")
 
     st.dataframe(
         pd.DataFrame({
@@ -232,8 +234,9 @@ with st.expander("📐 Macro Score 산정 내역 (v2.3)", expanded=False):
         f"VIX Regime: {regime_str}  ·  "
         f"Rate Level {rate_w*100:.0f}% + Fed Policy Signal {fed_w*100:.0f}%  ·  "
         f"r* = {inp.get('neutral_rate', 2.5):.1f}%  ·  "
-        f"Yield Curve: {yield_curve_status(macro)}"
+        f"Yield Curve Warning: {yield_curve_status(macro)}"
     )
+    st.caption("장단기 금리차는 Macro 점수에 포함되지 않고 상태 경고에만 사용됩니다.")
     ca, cb = st.columns(2)
     with ca:
         st.markdown("**Rate Level Score**")
