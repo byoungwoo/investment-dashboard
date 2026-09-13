@@ -6,13 +6,13 @@ from config import WEIGHTS, GRADE_THRESHOLDS, NEUTRAL_RATE
 
 def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
     if not math.isfinite(v):
-        raise ValueError("cannot clamp a non-finite value")
+        raise ValueError("score input must be finite")
     return max(lo, min(hi, v))
 
 
-def _is_finite(v: object) -> bool:
+def _is_finite(value) -> bool:
     try:
-        return math.isfinite(v)
+        return math.isfinite(float(value))
     except (TypeError, ValueError):
         return False
 
@@ -99,6 +99,109 @@ def technical_score(
     score = rsi_s * 0.35 + stoch_s * 0.35 + ma_s * 0.30
     detail = f"RSI={rsi_val:.0f} Stoch={avg_stoch:.0f} vs200={dev200:+.0f}%"
     return _clamp(score), detail
+
+
+# ── Lab shadow signals (do not affect Price Score or Grade) ───────────────────
+
+def opportunity_score(
+    valuation: float,
+    valuation_detail: str,
+    rsi_val: float,
+    stoch_k: float,
+    stoch_d: float,
+) -> tuple[Optional[float], str, dict]:
+    missing = []
+    if valuation_detail == "N/A" or not _is_finite(valuation):
+        missing.append("Valuation")
+    if not _is_finite(rsi_val):
+        missing.append("RSI")
+    if not (_is_finite(stoch_k) and _is_finite(stoch_d)):
+        missing.append("Stoch")
+    if missing:
+        return None, f"N/A: {', '.join(missing)}", {}
+
+    rsi_entry = _clamp((70 - rsi_val) / 40 * 100)
+    stoch_avg = (stoch_k + stoch_d) / 2
+    stoch_entry = _clamp(100 - stoch_avg)
+    score = _clamp(valuation * 0.60 + rsi_entry * 0.20 + stoch_entry * 0.20)
+    breakdown = {
+        "valuation": round(valuation, 1),
+        "rsi_entry": round(rsi_entry, 1),
+        "stoch_entry": round(stoch_entry, 1),
+    }
+    return score, "Val 60% + RSI Entry 20% + Stoch Entry 20%", breakdown
+
+
+def trend_health_score(metrics: dict) -> tuple[Optional[float], str, dict]:
+    required = {
+        "Price/200MA": metrics.get("dev200"),
+        "200MA Slope": metrics.get("ma200_slope"),
+        "MA Structure": metrics.get("ma_spread"),
+        "Relative Strength": metrics.get("relative_strength"),
+    }
+    missing = [label for label, value in required.items() if not _is_finite(value)]
+    if missing:
+        return None, f"N/A: {', '.join(missing)}", {}
+
+    position = _clamp(50 + 2.5 * required["Price/200MA"])
+    slope = _clamp(50 + 10 * required["200MA Slope"])
+    structure = _clamp(50 + 5 * required["MA Structure"])
+    relative = _clamp(50 + 2.5 * required["Relative Strength"])
+    score = _clamp(
+        position * 0.30
+        + slope * 0.30
+        + structure * 0.20
+        + relative * 0.20
+    )
+    breakdown = {
+        "price_position": round(position, 1),
+        "ma200_slope": round(slope, 1),
+        "ma_structure": round(structure, 1),
+        "relative_strength": round(relative, 1),
+    }
+    return score, "Position 30% + Slope 30% + Structure 20% + Relative 20%", breakdown
+
+
+def data_confidence(
+    valuation: float,
+    valuation_detail: str,
+    rsi_val: float,
+    stoch_k: float,
+    stoch_d: float,
+    metrics: dict,
+) -> tuple[float, str, str]:
+    checks = {
+        "Valuation": valuation_detail != "N/A" and _is_finite(valuation),
+        "RSI": _is_finite(rsi_val),
+        "Slow Stoch": _is_finite(stoch_k) and _is_finite(stoch_d),
+        "Price/200MA": _is_finite(metrics.get("dev200")),
+        "200MA Slope": _is_finite(metrics.get("ma200_slope")),
+        "MA Structure": _is_finite(metrics.get("ma_spread")),
+        "Relative Strength": _is_finite(metrics.get("relative_strength")),
+        "History 220+": metrics.get("history_points", 0) >= 220,
+        "Benchmark 64+": metrics.get("benchmark_points", 0) >= 64,
+        "Latest Bars": bool(metrics.get("price_fresh")) and bool(metrics.get("benchmark_fresh")),
+    }
+    passed = sum(checks.values())
+    score = passed / len(checks) * 100
+    label = "HIGH" if score >= 90 else "MEDIUM" if score >= 70 else "LOW"
+    failed = [label for label, ok in checks.items() if not ok]
+    detail = f"{passed}/{len(checks)} valid"
+    if failed:
+        detail += f" · Missing: {', '.join(failed)}"
+    return score, label, detail
+
+
+def shadow_diagnosis(opportunity: Optional[float], trend: Optional[float]) -> str:
+    if opportunity is None or trend is None:
+        return "데이터 부족 — Shadow 진단 N/A"
+    if opportunity >= 65 and trend >= 60:
+        return "★ 가격 매력 + 건강한 추세"
+    if opportunity >= 65:
+        return "⚠ 싸지만 추세 확인 필요"
+    if trend >= 60:
+        return "↑ 추세는 건강하지만 가격 매력 제한"
+    return "✕ 가격 매력과 추세 모두 약함"
 
 
 def macro_score(macro: dict, vix: float = 20.0) -> tuple[float, str, dict]:
