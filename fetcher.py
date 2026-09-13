@@ -1,3 +1,6 @@
+import html
+import re
+
 import requests
 import yfinance as yf
 import pandas as pd
@@ -11,14 +14,65 @@ except Exception:
 from config import NEUTRAL_RATE
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
+WSJ_PE_URL = "https://www.wsj.com/market-data/stocks/peyields"
 
 
-def fetch_history(ticker: str, period: str = "1y") -> pd.DataFrame:
-    return yf.Ticker(ticker).history(period=period)
+def fetch_history(ticker: str, period: str = "2y") -> pd.DataFrame:
+    return yf.Ticker(ticker).history(
+        period=period,
+        interval="1d",
+        auto_adjust=True,
+        actions=False,
+        keepna=False,
+        raise_errors=True,
+    )
 
 
 def fetch_info(ticker: str) -> dict:
     return yf.Ticker(ticker).info
+
+
+def parse_wsj_sp500_valuation(page: str) -> dict:
+    row = re.search(
+        r"<tr\b[^>]*>\s*<td\b[^>]*>\s*S(?:&amp;|&)P 500 Index\s*</td>(.*?)</tr>",
+        page,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if row is None:
+        raise ValueError("S&P 500 valuation row not found")
+
+    cells = re.findall(r"<td\b[^>]*>(.*?)</td>", row.group(1), flags=re.IGNORECASE | re.DOTALL)
+    values = []
+    for cell in cells:
+        text = html.unescape(re.sub(r"<[^>]+>", "", cell)).strip().replace(",", "")
+        values.append(float(text))
+    if len(values) != 5:
+        raise ValueError(f"expected 5 S&P 500 valuation values, got {len(values)}")
+
+    dates = re.findall(r">(\d{1,2}/\d{1,2}/\d{2,4})†</th>", page[:row.start()])
+    as_of = dates[-1] if dates else None
+    ttm_pe, year_ago_pe, forward_pe, dividend_yield, year_ago_dividend_yield = values
+    return {
+        "ttm_pe": ttm_pe,
+        "year_ago_pe": year_ago_pe,
+        "forward_pe": forward_pe,
+        "dividend_yield": dividend_yield,
+        "year_ago_dividend_yield": year_ago_dividend_yield,
+        "earnings_yield": 100 / ttm_pe,
+        "as_of": as_of,
+        "source": "WSJ / Birinyi Associates / Dow Jones Market Data",
+        "url": WSJ_PE_URL,
+    }
+
+
+def fetch_sp500_valuation() -> dict:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+    }
+    resp = requests.get(WSJ_PE_URL, headers=headers, timeout=20)
+    resp.raise_for_status()
+    return parse_wsj_sp500_valuation(resp.text)
 
 
 def _fred_latest(series_id: str):

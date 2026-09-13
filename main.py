@@ -58,9 +58,9 @@ def build_table(results: list[dict]) -> Table:
             r["symbol"],
             STARS.get(r["survival"], "?"),
             STARS.get(r["growth"], "?"),
-            f"{r['val']:.0f}" if r["val"] else "—",
-            f"{r['tech']:.0f}" if r["tech"] else "—",
-            f"{r['score']:.0f}" if r["score"] else "—",
+            f"{r['val']:.0f}" if r["val"] is not None else "N/A",
+            f"{r['tech']:.0f}" if r["tech"] is not None else "N/A",
+            f"{r['score']:.0f}" if r["score"] is not None else "N/A",
             grade_text,
             r["action"],
             r["role"],
@@ -91,16 +91,38 @@ def main():
         macro = {"t10y": 4.3, "t30y": 4.6, "t10y2y": 0.1, "ffr": 5.25}
         m_score, m_detail, m_breakdown = macro_score(macro)
 
+    marks_data = {}
+    marks_vix = None
+    marks_vix_history = None
+    marks_fear_greed = None
     try:
-        fg = fetch_fear_greed()
+        marks_data = fetch_marks_temperature_data()
+    except Exception:
+        pass
+    try:
+        marks_vix = fetch_vix()
+    except Exception:
+        pass
+    try:
+        marks_vix_history = fetch_vix_history()
+    except Exception:
+        pass
+    try:
+        marks_fear_greed = fetch_fear_greed()["score"]
+    except Exception:
+        pass
+
+    try:
         mt_score, mt_label, mt_detail, _ = marks_temperature_score(
-            fetch_marks_temperature_data(),
-            vix=fetch_vix(),
-            vix_history=fetch_vix_history(),
-            fear_greed=fg["score"],
+            marks_data,
+            vix=marks_vix,
+            vix_history=marks_vix_history,
+            fear_greed=marks_fear_greed,
         )
         if mt_score is not None:
             console.print(f"[dim]Marks Temperature: {mt_score:.0f}/100 {mt_label} ({mt_detail})[/dim]\n")
+        else:
+            console.print(f"[yellow]Marks Temperature: N/A ({mt_detail})[/yellow]\n")
     except Exception as e:
         console.print(f"[yellow]Marks Temperature fetch failed ({e})[/yellow]\n")
 
@@ -131,16 +153,18 @@ def main():
                 *slow_stochastic(hist["High"], hist["Low"], closes),
                 ma_deviation(closes),
             )
-            # valuation N/A(50=neutral)이면 tech+macro만으로 판단
-            effective_val = v_score if v_detail != "N/A" else None
-            s = price_score(
-                effective_val if effective_val is not None else 50,
-                t_score, m_score,
-            )
-            grade, action = to_grade(s)
-
-            row.update({"val": v_score, "tech": t_score, "score": s,
-                         "grade": grade, "action": action})
+            if t_score is None:
+                row.update({"val": v_score, "grade": "N/A", "action": "N/A"})
+            else:
+                # valuation N/A(50=neutral)이면 tech+macro만으로 판단
+                effective_val = v_score if v_detail != "N/A" else None
+                s = price_score(
+                    effective_val if effective_val is not None else 50,
+                    t_score, m_score,
+                )
+                grade, action = to_grade(s)
+                row.update({"val": v_score, "tech": t_score, "score": s,
+                            "grade": grade, "action": action})
             console.print(f"[dim]  {symbol:<6} val={v_detail}  tech={t_detail}[/dim]")
         except Exception as e:
             row["action"] = f"ERR: {e}"

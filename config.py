@@ -17,6 +17,7 @@ PORTFOLIO = {
         "survival": 5,
         "growth": 5,
         "ticker": "AVGO",
+        "benchmark": "SPY",
     },
     "ABB": {
         "name_kr": "ABB",
@@ -26,6 +27,7 @@ PORTFOLIO = {
         "survival": 5,
         "growth": 4,
         "ticker": "ABBN.SW",  # SIX Swiss Exchange (더 안정적)
+        "benchmark": "^SSMI",
     },
     "VRT": {
         "name_kr": "버티브",
@@ -35,6 +37,7 @@ PORTFOLIO = {
         "survival": 5,
         "growth": 5,
         "ticker": "VRT",
+        "benchmark": "SPY",
     },
     "IREN": {
         "name_kr": "아이런",
@@ -44,6 +47,7 @@ PORTFOLIO = {
         "survival": 3,
         "growth": 5,
         "ticker": "IREN",
+        "benchmark": "SPY",
     },
 }
 
