@@ -63,9 +63,14 @@ class DashboardSmokeTest(unittest.TestCase):
                 stack.enter_context(patch(target, replacement))
             app = AppTest.from_file("app.py", default_timeout=30).run(timeout=30)
 
+            detail_buttons = [button for button in app.button if button.label == "🔍 Fundamental Detail"]
+            self.assertEqual(4, len(detail_buttons))
+            detail_buttons[0].click().run(timeout=30)
+
         self.assertEqual([], list(app.exception))
         self.assertGreaterEqual(len(app.metric), 17)
         self.assertEqual(1, len(app.selectbox))
+        self.assertTrue(any("AVGO · Fundamental Detail" in item.value for item in app.markdown))
 
 
 if __name__ == "__main__":

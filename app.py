@@ -5,6 +5,7 @@ import json
 import html
 
 from config import PORTFOLIO
+from fundamentals import fundamental_badges_html, show_fundamental_detail
 from fetcher import (
     fetch_history,
     fetch_info,
@@ -98,6 +99,7 @@ def load_ticker(ticker: str):
 def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
     ticker = cfg["ticker"]
     base = {
+        "_symbol": symbol,
         "종목": f"{symbol} ({cfg.get('name_kr', '')})",
         "Thesis": cfg["thesis"],
         "역할": cfg.get("role", "—"),
@@ -467,6 +469,7 @@ for i, row in enumerate(rows):
             f'{html.escape(row["_shadow_error"])}</div>'
             if row["_shadow_error"] else ""
         )
+        fundamental_badges = fundamental_badges_html(row["_symbol"])
 
         st.markdown(
             f"""
@@ -521,11 +524,19 @@ for i, row in enumerate(rows):
                 <div style="font-size:12px;font-weight:600;margin-top:7px;">{row['Shadow']}</div>
                 {shadow_error_html}
               </div>
+              {fundamental_badges}
               {error_html}
             </div>
             """,
             unsafe_allow_html=True,
         )
+        if st.button(
+            "🔍 Fundamental Detail",
+            key=f"fundamental-detail-{row['_symbol']}",
+            use_container_width=True,
+        ):
+            show_fundamental_detail(row["_symbol"])
+        st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
 
 # ── Shadow Model 상세 ──────────────────────────────────────────────────────────
 with st.expander("🔬 Shadow Model Lab · Opportunity × Trend Health", expanded=False):
