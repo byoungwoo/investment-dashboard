@@ -31,7 +31,7 @@ from scorer import (
     to_grade,
 )
 
-st.set_page_config(page_title="LBW Portfolio", page_icon="📊", layout="centered")
+st.set_page_config(page_title="LBW Alpha Dashboard", page_icon="📈", layout="centered")
 
 st.markdown(
     """
@@ -200,7 +200,7 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 
-st.title("📊 LBW Portfolio")
+st.title("📈 LBW Alpha Dashboard")
 
 with st.expander("📐 스코어링 공식 보기", expanded=False):
     st.markdown("**Price Score = Valuation × 50% + Technical × 30% + Macro × 20%**")
