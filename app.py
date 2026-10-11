@@ -5,7 +5,11 @@ import json
 import html
 
 from config import PORTFOLIO
-from fundamentals import fundamental_badges_html, show_fundamental_detail
+from fundamentals import (
+    fundamental_badges_html,
+    has_fundamental_detail,
+    show_fundamental_detail,
+)
 from fetcher import (
     fetch_history,
     fetch_info,
@@ -530,7 +534,7 @@ for i, row in enumerate(rows):
             """,
             unsafe_allow_html=True,
         )
-        if st.button(
+        if has_fundamental_detail(row["_symbol"]) and st.button(
             "🔍 Fundamental Detail",
             key=f"fundamental-detail-{row['_symbol']}",
             use_container_width=True,

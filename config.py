@@ -49,6 +49,21 @@ PORTFOLIO = {
         "ticker": "IREN",
         "benchmark": "SPY",
     },
+    "ORCL": {
+        "name_kr": "오라클",
+        "thesis": "AI Cloud Infrastructure (OCI) + Enterprise Data Platform",
+        "role": "AI Cloud Platform / Enterprise Core",
+        "note": (
+            "OCI의 AI 학습·추론 capacity 수주로 성장축이 재편되는 중. "
+            "기존 엔터프라이즈 DB·애플리케이션 기반이 현금흐름을 받쳐주지만, "
+            "AI capex를 차입으로 조달하는 구조가 레버리지 리스크로 남는다."
+        ),
+        # survival / growth 는 사용자 확신도 입력값 (점수 계산에는 미반영, ★ 표시용)
+        "survival": 4,
+        "growth": 4,
+        "ticker": "ORCL",
+        "benchmark": "SPY",
+    },
 }
 
 WEIGHTS = {

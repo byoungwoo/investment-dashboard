@@ -182,6 +182,15 @@ def _tone(tone):
     return TONE_COLORS.get(tone, ("#6b7280", "rgba(107,114,128,.09)"))
 
 
+def has_fundamental_detail(symbol):
+    """Fundamental Detail 패널을 띄울 수 있는 종목인지.
+
+    PORTFOLIO에는 있지만 FUNDAMENTAL_DETAILS에 스냅샷이 없는 종목이 있을 수 있다.
+    그런 종목까지 상세 버튼을 렌더하면 show_fundamental_detail()에서 KeyError가 난다.
+    """
+    return symbol in FUNDAMENTAL_DETAILS
+
+
 def fundamental_badges_html(symbol):
     detail = FUNDAMENTAL_DETAILS.get(symbol)
     if not detail:
