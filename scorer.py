@@ -17,6 +17,17 @@ def _is_finite(value) -> bool:
         return False
 
 
+def _or_default(value, default):
+    """결측(None)일 때만 기본값으로 대체한다.
+
+    `value or default` 를 쓰면 0.0이 falsy라 기본값으로 갈아끼워진다.
+    정책금리 0.00%는 2008~2015, 2020~2022에 실재했고 TIPS 10Y 실질금리도
+    0 근방과 마이너스를 지났다. 0은 결측이 아니라 데이터다.
+    NaN은 그대로 통과시켜 _clamp가 터뜨리도록 둔다.
+    """
+    return default if value is None else value
+
+
 # ── Macro Score v2.3 helpers ────────────────────────────────────────────────────
 
 def _rate_level_score(t10: float, t30: float) -> tuple[float, dict]:
@@ -205,12 +216,12 @@ def shadow_diagnosis(opportunity: Optional[float], trend: Optional[float]) -> st
 
 
 def macro_score(macro: dict, vix: float = 20.0) -> tuple[float, str, dict]:
-    t10          = macro.get("t10y")         or 4.3
-    t30          = macro.get("t30y")         or 4.6
-    ffr          = macro.get("ffr")          or 5.25
-    neutral_rate = macro.get("neutral_rate") or NEUTRAL_RATE
-    delta_2y     = macro.get("delta_2y")     or 0.0
-    tips         = macro.get("tips")         or 1.5
+    t10          = _or_default(macro.get("t10y"),         4.3)
+    t30          = _or_default(macro.get("t30y"),         4.6)
+    ffr          = _or_default(macro.get("ffr"),          5.25)
+    neutral_rate = _or_default(macro.get("neutral_rate"), NEUTRAL_RATE)
+    delta_2y     = _or_default(macro.get("delta_2y"),     0.0)
+    tips         = _or_default(macro.get("tips"),         1.5)
 
     # VIX > 25 → stress regime: Fed Policy Signal weight expands
     stress = vix > 25

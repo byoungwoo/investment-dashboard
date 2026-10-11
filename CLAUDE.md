@@ -35,6 +35,33 @@ python3 -m unittest discover -s . -t . -p 'test_*.py'
 테스트가 실제로 일하는지 확인하는 방법: 고친 로직을 일부러 망가뜨려서
 해당 테스트가 **실패하는지** 본다. 실패하지 않으면 그 테스트는 아무것도 지키지 않는다.
 
+### 변이 테스트를 할 때는 반드시 `PYTHONDONTWRITEBYTECODE=1`
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s . -t . -p 'test_*.py'
+```
+
+이 맥의 Python은 Apple이 제공하는 CommandLineTools 버전이고, 바이트코드 캐시를
+로컬 `__pycache__/` 가 아니라 **홈 디렉터리**에 쓴다:
+
+```
+~/Library/Caches/com.apple.python/Users/lbw/IdeaProjects/<워크트리>/scorer.cpython-39.pyc
+```
+
+`find . -name __pycache__` 로는 **절대 안 나온다.**
+
+pyc는 소스를 **mtime(초 단위)과 파일 크기**로만 검증한다. 변이와 원복이 같은 초 안에
+일어나고 글자 수가 같으면(`0.70` ↔ `0.80`) Python이 캐시를 유효하다고 판단해
+**변이된 바이트코드를 계속 실행한다.** 디스크 소스와 실행 결과가 어긋나고,
+`inspect.getsource()` 는 디스크를 읽으므로 멀쩡해 보인다.
+
+증상: 가중치가 분명히 0.80인데 `rate_weight` 가 0.7로 나온다.
+확인: `importlib.util.find_spec("scorer").cached` 로 캐시 경로를 본다.
+복구: 그 경로의 pyc를 삭제한다 (소스에서 자동 재생성된다).
+
+2026-10-11 Macro Score 테스트 작성 중 실제로 이 함정에 빠졌고,
+한동안 틀린 기대값을 쫓았다.
+
 루트 `test_scorer.py`와 `tests/test_scorer.py`는 중복이 아니다.
 - 루트: 정확한 값을 못 박는 회귀 테스트 (`assertAlmostEqual(score, 56.0)`)
 - `tests/`: 성질 검사 + `opportunity` / `trend_health` / `data_confidence` / `shadow` 커버리지
