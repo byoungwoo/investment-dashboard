@@ -5,7 +5,7 @@
 
 - 배포: `lbw-portfolio.streamlit.app`
 - 리포: `github.com/byoungwoo/investment-dashboard`
-- 보유: AVGO, ABB, VRT, IREN, ORCL
+- 보유: AVGO, ABB, VRT, IREN
 
 @PROJECT_STATE.md
 

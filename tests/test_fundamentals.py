@@ -24,11 +24,21 @@ class FundamentalDetailsTest(unittest.TestCase):
         self.assertLessEqual(set(FUNDAMENTAL_DETAILS), set(PORTFOLIO))
 
     def test_symbol_without_snapshot_is_gated_not_crashed(self):
-        """스냅샷 없는 보유 종목은 상세 버튼이 아예 렌더되지 않아야 한다.
+        """스냅샷 없는 종목은 상세 버튼이 아예 렌더되지 않아야 한다.
 
         예전에는 버튼이 모든 종목에 렌더됐고, 스냅샷 없는 종목에서 누르면
         show_fundamental_detail()의 FUNDAMENTAL_DETAILS[symbol]이 KeyError를 냈다.
+
+        PORTFOLIO - FUNDAMENTAL_DETAILS 를 돌리면 전 종목에 스냅샷이 있는 순간
+        루프가 비어 아무것도 검사하지 않고 통과한다 (ORCL 제거 때 실제로 그렇게 됐다).
+        가드는 포트폴리오 구성과 무관하게 동작해야 하므로 없는 심볼로 직접 찌른다.
         """
+        missing = "ZZZZ"
+        self.assertNotIn(missing, FUNDAMENTAL_DETAILS)
+        self.assertFalse(has_fundamental_detail(missing))
+        self.assertEqual("", fundamental_badges_html(missing))
+
+        # 보유 종목에 스냅샷 공백이 생기면 그쪽도 같이 막혀야 한다.
         for symbol in set(PORTFOLIO) - set(FUNDAMENTAL_DETAILS):
             self.assertFalse(has_fundamental_detail(symbol), symbol)
             self.assertEqual("", fundamental_badges_html(symbol), symbol)
