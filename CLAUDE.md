@@ -1,10 +1,13 @@
 # Role: 개별주 Dashboard Developer
 
 이 리포는 **개별주 포트폴리오 대시보드**다. ETF 앱(`investment-dashboard-byeon`)과는 별개 리포다.
+그쪽 모델(`etf_scorer.py`)과 이쪽 모델은 서로 건드리지 않는다.
 
 - 배포: `lbw-portfolio.streamlit.app`
 - 리포: `github.com/byoungwoo/investment-dashboard`
 - 보유: AVGO, ABB, VRT, IREN, ORCL
+
+@PROJECT_STATE.md
 
 ## 작업 전후에 반드시 돌릴 것
 
@@ -12,7 +15,7 @@
 python3 -m unittest discover -s . -t . -p 'test_*.py'
 ```
 
-36개가 전부 통과해야 한다. 1초 미만으로 끝난다.
+**49개가 전부 통과해야 한다.** 0.2초 미만으로 끝난다.
 
 **`-s tests` 로 줄여 쓰지 말 것.** 루트의 `test_scorer.py` 12개를 조용히 건너뛰고
 "OK"를 내보낸다. 통과했다고 착각하게 만드는 쪽이 더 위험하다.
@@ -28,64 +31,6 @@ python3 -m unittest discover -s . -t . -p 'test_*.py'
 | `app.py` | Streamlit UI |
 | `main.py` | CLI. `python3 main.py` 로 전 종목 점수를 표로 확인 — UI 없이 빠르게 검증할 때 |
 
-## 계산 로직을 고칠 때
-
-`scorer.py` / `indicators.py` 수정은 **테스트 없이 커밋하지 않는다.**
-
-테스트가 실제로 일하는지 확인하는 방법: 고친 로직을 일부러 망가뜨려서
-해당 테스트가 **실패하는지** 본다. 실패하지 않으면 그 테스트는 아무것도 지키지 않는다.
-
-### 변이 테스트를 할 때는 반드시 `PYTHONDONTWRITEBYTECODE=1`
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s . -t . -p 'test_*.py'
-```
-
-이 맥의 Python은 Apple이 제공하는 CommandLineTools 버전이고, 바이트코드 캐시를
-로컬 `__pycache__/` 가 아니라 **홈 디렉터리**에 쓴다:
-
-```
-~/Library/Caches/com.apple.python/Users/lbw/IdeaProjects/<워크트리>/scorer.cpython-39.pyc
-```
-
-`find . -name __pycache__` 로는 **절대 안 나온다.**
-
-pyc는 소스를 **mtime(초 단위)과 파일 크기**로만 검증한다. 변이와 원복이 같은 초 안에
-일어나고 글자 수가 같으면(`0.70` ↔ `0.80`) Python이 캐시를 유효하다고 판단해
-**변이된 바이트코드를 계속 실행한다.** 디스크 소스와 실행 결과가 어긋나고,
-`inspect.getsource()` 는 디스크를 읽으므로 멀쩡해 보인다.
-
-증상: 가중치가 분명히 0.80인데 `rate_weight` 가 0.7로 나온다.
-확인: `importlib.util.find_spec("scorer").cached` 로 캐시 경로를 본다.
-복구: 그 경로의 pyc를 삭제한다 (소스에서 자동 재생성된다).
-
-2026-10-11 Macro Score 테스트 작성 중 실제로 이 함정에 빠졌고,
-한동안 틀린 기대값을 쫓았다.
-
-루트 `test_scorer.py`와 `tests/test_scorer.py`는 중복이 아니다.
-- 루트: 정확한 값을 못 박는 회귀 테스트 (`assertAlmostEqual(score, 56.0)`)
-- `tests/`: 성질 검사 + `opportunity` / `trend_health` / `data_confidence` / `shadow` 커버리지
-
-## 종목을 추가할 때
-
-`config.py`의 `PORTFOLIO`에만 넣으면 끝이 아니다.
-
-- `survival` / `growth` 는 1~5 **사용자 확신도 표시값**이다 (★). 점수 계산에 안 들어간다.
-  임의로 정하지 말고 사용자에게 확인받는다.
-- `fundamentals.py`의 `FUNDAMENTAL_DETAILS` 는 **일부 종목만** 가진 수동 스냅샷이다.
-  없는 종목은 `has_fundamental_detail()` 가드가 상세 버튼을 막는다.
-  **실제 공시 수치를 지어내서 채우지 않는다.**
-- 추가 후 `python3 main.py` 로 그 종목의 Val/Tech/Score가 실제로 나오는지 확인한다.
-
-## 배포
-
-`git push origin main` → Streamlit Cloud 자동 재배포.
-
-**모듈을 새로 추가/수정한 커밋은 새로고침으로 반영되지 않는다.**
-Streamlit이 `app.py`만 다시 실행하고 `sys.modules`의 옛 모듈을 그대로 쓰기 때문에
-`ImportError`가 난다. 이때는 **Manage app → Reboot app** 으로 프로세스를 재시작한다.
-(2026-10-11 `has_fundamental_detail` 추가 때 실제로 발생)
-
 ## 커밋 금지
 
 - `.streamlit/secrets.toml` (FRED API 키)
@@ -99,7 +44,20 @@ investment-dashboard-lab     [lab]     ← 실험
 investment-dashboard-hotfix  [hotfix]  ← 긴급 수정
 ```
 
-`lab` / `hotfix` 는 쓰기 전에 `main` 기준으로 맞춰야 한다 (지금 둘 다 main에 병합된 과거 커밋에 멈춰 있음).
+`lab` / `hotfix` 는 작업을 **시작하기 전에** main 기준으로 맞춘다.
+`PROJECT_STATE.md` 는 **main이 소유한다** — lab / hotfix 세션은 수정하지 않고,
+진행 상태를 PR 핸드오프 코멘트(`/handoff`)로 남긴다.
+
+## 맥락이 어디에 있는지
+
+| 찾는 것 | 파일 |
+|---|---|
+| 지금 상태 / 다음 할 일 | `PROJECT_STATE.md` (위에서 자동 로드) |
+| 과거 결정의 "왜" | `docs/adr/` — 뒤집기 전에 해당 ADR을 읽는다 |
+| 테스트·pyc 함정 | `.claude/rules/testing.md` (계산 파일 열 때 자동 로드) |
+| 종목 추가 절차 | `.claude/rules/portfolio.md` |
+| 배포·Reboot 조건 | `.claude/rules/deploy.md` |
+| 세션 인수인계 | `/catchup` 으로 읽고, `/handoff` 로 남긴다 |
 
 ## 핵심 철학
 

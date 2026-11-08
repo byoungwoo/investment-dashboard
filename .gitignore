@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .env
 .idea/
+
+# Claude Code 개인 설정 (권한 등) — 공유 대상 아님
+.claude/settings.local.json
