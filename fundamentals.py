@@ -21,54 +21,58 @@ FUNDAMENTAL_DETAILS = {
         "updated": "2026-11-05",
         "badges": [
             {"label": "Q1 AI REVENUE", "value": "$200M", "tone": "actual", "detail": "+182% QoQ"},
-            {"label": "OPERATING ARR", "value": "$1.0B", "tone": "operating", "detail": "전분기 대비 약 2배"},
-            {"label": "BACKLOG", "value": "$20.3B", "tone": "forward", "detail": "계약 기반 · +22% QoQ"},
+            {"label": "OPERATING ARR", "value": "$1.0B", "tone": "operating", "detail": "전분기 대비 2배"},
+            {"label": "BACKLOG", "value": "$20.3B", "tone": "forward", "detail": "+22% QoQ · 약 2/3 투자적격"},
         ],
         "flow_title": "Contract-to-Cash",
         "flow": [
             {"label": "Contract", "value": "$20.3B", "detail": "계약 백로그"},
-            {"label": "Build", "value": "Horizon 1 인도", "detail": "H2 시운전 · H3 전력"},
+            {"label": "Build", "value": "Horizon 1 인도", "detail": "Microsoft · NVIDIA Exemplar · H2–4 후반 공정"},
             {"label": "Service", "value": "$1.0B ARR", "detail": "Operating"},
-            {"label": "Recognized", "value": "$200M", "detail": "Q1 GAAP AI 매출"},
+            {"label": "Recognized", "value": "$200M", "detail": "FY26 연간 $128.8M 초과"},
         ],
         "financial_title": "Q1 FY2027 수익성",
         "financials": [
             {"label": "AI Cloud Revenue", "value": "+$200M", "tone": "actual"},
-            {"label": "Bitcoin Revenue", "value": "+$28M", "tone": "actual"},
+            {"label": "Bitcoin Mining Revenue", "value": "+$28M", "tone": "actual"},
+            {"label": "Total Revenue", "value": "+$228M", "tone": "actual"},
             {"label": "Adjusted EBITDA", "value": "+$66M", "tone": "actual"},
-            {"label": "Stock-Based Compensation", "value": "-$63M", "tone": "risk"},
+            {"label": "Depreciation & Amortization", "value": "-$148M", "tone": "risk"},
+            {"label": "Finance Expense", "value": "-$73M", "tone": "risk"},
+            {"label": "Stock-Based Compensation", "value": "-$106M", "tone": "risk"},
             {"label": "GAAP Net Loss", "value": "-$263M", "tone": "risk"},
             {"label": "FY27 잔여 CAPEX · 확보 / 추가 조달", "value": "$9B / $6B", "tone": "risk"},
         ],
         "financial_note": (
             "AI Cloud 매출 $200M은 서비스 $135M과 리스 $65M의 합이며 분기 인식 매출입니다. "
             "Operating ARR $1.0B은 연환산 운영 지표이므로 분기 매출과 직접 비교할 수 없습니다. "
-            "AI Cloud 매출총이익률 86%는 감가상각·상각비와 데이터센터 현장비용을 제외한 수치이고, "
-            "조정 EBITDA $66M은 주식보상 $63M·감가상각·금융비용을 제외하므로 주주 귀속 현금창출력이 아닙니다. "
-            "FY27 남은 계획 투자 약 $15B 중 회사가 제시한 약 $9B에는 아직 수령하지 않은 계약상 선급금과 "
-            "조건부 약정 금융이 포함됩니다. 회사가 말하는 fully funded는 $4.0B ARR 0.3GW 프로그램에 한정된 표현입니다."
+            "AI Cloud 매출총이익률 86%는 감가상각·상각비를 제외하고 데이터센터 현장비용 차감 전 수치입니다. "
+            "조정 EBITDA $66M은 위에 적은 감가상각 $148M·금융비용 $73M·주식보상 $106M을 제외한 값이므로 "
+            "주주 귀속 현금창출력이 아닙니다. 같은 분기 이자수익 $51M은 금융비용과 별도로 계상됩니다. "
+            "FY27 남은 계획 투자 약 $15B 중 회사가 제시한 약 $9B에는 아직 수령하지 않은 선급금과 "
+            "조건부 약정 금융이 포함됩니다. fully funded는 $4.0B ARR 프로그램에 한정된 표현입니다."
         ),
         "status": {"emoji": "🟡", "label": "실행 검증 중", "tone": "forward"},
         "status_breakdown": [
             {"label": "수요 · 계약", "value": "강화", "tone": "profit"},
             {"label": "매출 전환", "value": "진전", "tone": "actual"},
-            {"label": "인도 · 가동 일정", "value": "지연", "tone": "forward"},
+            {"label": "인도 · 가동 일정", "value": "지연 — 고객 설계 변경·공급 일정", "tone": "forward"},
             {"label": "자금조달 · 희석", "value": "고위험", "tone": "risk"},
         ],
         "next_checks": [
-            "12월 분기 AI Cloud 매출 약 $250M (회사 기대치)",
+            "12월 분기 AI Cloud 매출 약 $250M — Horizon 추가 물량은 분기 말·연초 인도라 기여 제한",
             "2027년 1~2월 Operating ARR $4.0B 가동",
-            "GAAP 매출 증가분이 감가상각·이자비용을 흡수하는지",
+            "GAAP 매출 증가분이 감가상각·금융비용을 흡수하는지",
             "추가 $6B 조달의 금리·담보·전환조건·신주 규모",
         ],
         "break_conditions": [
-            "$4.0B ARR 가동이 2027년 2월 말을 또 넘김",
+            "$4.0B ARR 가동이 2027년 2월을 또 넘김",
             "GPU 선지급 90% 조건이 일부 계약에만 적용",
             "$6B 조달이 대규모 신주·전환사채로 귀결",
             "12월 분기 AI 매출이 기대치에 크게 미달",
         ],
-        "source_label": "IREN FY27 Q1 Results / SEC EDGAR",
-        "source_url": "https://www.sec.gov/edgar/browse/?CIK=1878848",
+        "source_label": "IREN Q1 FY27 Results / SEC 8-K",
+        "source_url": "https://www.sec.gov/Archives/edgar/data/0001878848/000187884826000065/irenreportsq1-fy27result.htm",
     },
     "AVGO": {
         "period": "Q3 FY2026",

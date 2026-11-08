@@ -51,6 +51,18 @@ class FundamentalDetailsTest(unittest.TestCase):
         # 조정 EBITDA 흑자에 profit 톤을 주면 주식보상·감가상각·금융비용을
         # 제외한 수치가 순이익처럼 읽힌다. profit 톤은 GAAP 기준에만 쓴다.
         self.assertNotEqual("profit", rows["Adjusted EBITDA"]["tone"])
+        # 조정 EBITDA $66M과 순손실 -$263M의 간격을 만드는 세 항목.
+        # 이 행들이 빠지면 패널이 "흑자 전환"처럼 읽힌다.
+        self.assertEqual("-$148M", rows["Depreciation & Amortization"]["value"])
+        self.assertEqual("-$73M", rows["Finance Expense"]["value"])
+        # 주식보상은 8-K 조정 EBITDA 조정표의 $106M이다. 다른 값이 들어오면
+        # 출처를 다시 확인해야 한다 — 요약 기사와 공시가 어긋난 적이 있다.
+        self.assertEqual("-$106M", rows["Stock-Based Compensation"]["value"])
+
+    def test_iren_source_points_at_the_quarter_it_describes(self):
+        detail = FUNDAMENTAL_DETAILS["IREN"]
+        self.assertIn("q1-fy27", detail["source_url"])
+        self.assertTrue(detail["source_url"].startswith("https://www.sec.gov/Archives/"))
 
     def test_status_breakdown_is_optional_and_rendered_by_the_row_renderer(self):
         breakdown = FUNDAMENTAL_DETAILS["IREN"]["status_breakdown"]
