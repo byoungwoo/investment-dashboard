@@ -1,22 +1,22 @@
 {
-  "period": "Q2 2026",
-  "updated": "2026-07-29",
+  "period": "Q3 2026",
+  "updated": "2026-10-28",
   "badges": [
     {
-      "label": "Q2 SALES",
-      "value": "$3.27B",
+      "label": "Q3 SALES",
+      "value": "$4.31B",
       "tone": "actual",
-      "detail": "+24% YoY"
+      "detail": "+61% YoY"
     },
     {
       "label": "ADJ. MARGIN",
-      "value": "22.6%",
-      "tone": "profit",
-      "detail": "+410 bps"
+      "value": "25.2%",
+      "tone": "operating",
+      "detail": "+290 bps"
     },
     {
       "label": "FY26 GUIDE",
-      "value": "$14.0B",
+      "value": "$14.65B",
       "tone": "forward",
       "detail": "Midpoint"
     }
@@ -34,57 +34,84 @@
       "detail": "Critical path"
     },
     {
+      "label": "Orders",
+      "value": "+100% 초과",
+      "detail": "Organic YoY"
+    },
+    {
       "label": "Delivery",
-      "value": "+18%",
+      "value": "+55%",
       "detail": "Organic sales"
     },
     {
-      "label": "Q2 Sales",
-      "value": "$3.27B",
-      "detail": "+24% YoY"
+      "label": "Q3 Sales",
+      "value": "$4.31B",
+      "detail": "+61% YoY"
     }
   ],
-  "financial_title": "Q2 2026 수익성",
+  "financial_title": "Q3 2026 수익성",
   "financials": [
     {
-      "label": "Adjusted Operating Profit",
-      "value": "+$738M",
+      "label": "Operating Profit (GAAP)",
+      "value": "+$984M",
       "tone": "profit"
+    },
+    {
+      "label": "Adjusted Operating Profit (non-GAAP)",
+      "value": "+$1.09B",
+      "tone": "operating"
     },
     {
       "label": "Adjusted Operating Margin",
-      "value": "22.6%",
+      "value": "25.2%",
+      "tone": "operating"
+    },
+    {
+      "label": "Net Income (GAAP)",
+      "value": "+$765M",
       "tone": "profit"
+    },
+    {
+      "label": "Diluted EPS (GAAP)",
+      "value": "$1.95",
+      "tone": "profit"
+    },
+    {
+      "label": "Adjusted Diluted EPS (non-GAAP)",
+      "value": "$2.21",
+      "tone": "operating"
     },
     {
       "label": "Operating Cash Flow",
-      "value": "+$1.10B",
+      "value": "+$794M",
       "tone": "actual"
     },
     {
-      "label": "Adjusted Free Cash Flow",
-      "value": "+$925M",
-      "tone": "profit"
+      "label": "Adjusted Free Cash Flow (non-GAAP)",
+      "value": "+$652M",
+      "tone": "operating"
     }
   ],
-  "financial_note": "FY26 가이던스는 매출 $13.8B–$14.2B, 유기적 성장 30–32%입니다.",
+  "financial_note": "FY26 가이던스는 매출 $14.45B–$14.85B, 유기적 성장 37–39%, 조정 영업마진 23.5–24.5%, 조정 희석 EPS $7.10–$7.20, 조정 FCF $2.6B–$2.8B입니다. Q4 가이던스는 매출 $4.31B–$4.51B, 유기적 성장 49–51%입니다. 보고 매출은 +61%, 유기적 매출은 +55%입니다. Adjusted Operating Profit·Adjusted EPS·Adjusted FCF는 Vertiv가 정의한 비GAAP 지표입니다. 이 보도자료에는 수주잔고(backlog) 금액이 적혀 있지 않습니다.",
   "status": {
     "emoji": "🟢",
-    "label": "수요 강세 + 마진 확장",
+    "label": "수주 2배 · 가이던스 상향",
     "tone": "operating"
   },
   "next_checks": [
-    "Q3 유기적 성장률 34–36% 달성",
-    "조정 영업마진 24% 이상 진입",
-    "대형 프로젝트 납기",
-    "현금흐름이 매출 성장과 함께 증가"
+    "Q4 유기적 성장 49–51% 달성",
+    "FY26 조정 영업마진 23.5–24.5% 달성",
+    "조정 FCF $2.6B–$2.8B 달성",
+    "100% 초과 유기적 수주의 매출 전환 속도",
+    "보도자료에 수주잔고 재공시 여부"
   ],
   "break_conditions": [
-    "수주 또는 프로젝트 파이프라인 감소",
+    "유기적 수주 증가율 둔화",
     "연간 가이던스 하향",
     "공급망 병목으로 반복적인 매출 인식 지연",
-    "매출 증가에도 영업마진 하락"
+    "매출 증가에도 조정 영업마진 하락",
+    "GAAP 영업이익과 조정 영업이익의 격차 확대"
   ],
-  "source_label": "Vertiv Q2 2026 Results",
-  "source_url": "https://investors.vertiv.com/news/news-details/2026/Vertiv-Reports-Strong-Second-Quarter-2026-with-Diluted-EPS-Growth-of-53-Adjusted-Diluted-EPS-Growth-of-60-Raises-Full-Year-2026-Guidance-Across-All-Key-Metrics/default.aspx"
+  "source_label": "Vertiv Q3 2026 Results (8-K EX-99.1)",
+  "source_url": "https://www.sec.gov/Archives/edgar/data/1674101/000162828026067707/q32026exhibit991vrt10282026.htm"
 }

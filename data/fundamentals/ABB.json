@@ -1,22 +1,22 @@
 {
-  "period": "Q2 2026",
-  "updated": "2026-07-16",
+  "period": "Q3 2026",
+  "updated": "2026-10-20",
   "badges": [
     {
       "label": "ORDERS",
-      "value": "$12.04B",
+      "value": "$12.06B",
       "tone": "leading",
-      "detail": "+30% YoY"
+      "detail": "+40% YoY"
     },
     {
       "label": "BOOK / BILL",
-      "value": "1.27x",
+      "value": "1.24x",
       "tone": "operating",
       "detail": "Orders ÷ Revenue"
     },
     {
       "label": "REVENUE",
-      "value": "$9.48B",
+      "value": "$9.70B",
       "tone": "actual",
       "detail": "+14% YoY"
     }
@@ -26,65 +26,92 @@
     {
       "label": "Demand",
       "value": "DC + Grid",
-      "detail": "Electrification"
+      "detail": "Electrification +70%"
     },
     {
       "label": "Orders",
-      "value": "$12.04B",
-      "detail": "+30% YoY"
+      "value": "$12.06B",
+      "detail": "+40% YoY"
+    },
+    {
+      "label": "Backlog",
+      "value": "$32.26B",
+      "detail": "+35% YoY"
     },
     {
       "label": "Execution",
-      "value": "1.27x",
+      "value": "1.24x",
       "detail": "Book-to-Bill"
     },
     {
       "label": "Revenue",
-      "value": "$9.48B",
+      "value": "$9.70B",
       "detail": "+14% YoY"
     }
   ],
-  "financial_title": "Q2 2026 수익성",
+  "financial_title": "Q3 2026 수익성",
   "financials": [
     {
-      "label": "Operational EBITA",
-      "value": "+$1.93B",
-      "tone": "profit"
+      "label": "Operational EBITA (non-GAAP)",
+      "value": "+$2.03B",
+      "tone": "operating"
     },
     {
       "label": "Operational EBITA Margin",
-      "value": "20.2%",
+      "value": "20.8%",
+      "tone": "operating"
+    },
+    {
+      "label": "Income from Operations (GAAP)",
+      "value": "+$1.85B",
       "tone": "profit"
     },
     {
-      "label": "Operating Cash Flow",
-      "value": "+$1.15B",
+      "label": "Net Income Attributable to ABB",
+      "value": "+$1.18B",
+      "tone": "profit"
+    },
+    {
+      "label": "Basic EPS",
+      "value": "$0.65",
       "tone": "actual"
     },
     {
-      "label": "Free Cash Flow",
-      "value": "+$881M",
-      "tone": "profit"
+      "label": "Net Finance Expense",
+      "value": "-$127M",
+      "tone": "risk"
+    },
+    {
+      "label": "Operating Cash Flow",
+      "value": "+$1.86B",
+      "tone": "actual"
+    },
+    {
+      "label": "Free Cash Flow (non-GAAP)",
+      "value": "+$1.58B",
+      "tone": "operating"
     }
   ],
-  "financial_note": "Orders는 ABB 전체 수주이며 AI 데이터센터 전용 수치가 아닙니다.",
+  "financial_note": "Orders는 ABB 전체 수주이며 AI 데이터센터 전용 수치가 아닙니다. Operational EBITA·Free cash flow는 ABB가 정의한 비GAAP 지표입니다. Operational EBITA 마진은 +160bp이지만 GAAP Income from operations 마진은 19.0%로 +10bp이며, EPS는 -2%입니다 — Rotork 인수 관련 FX 헤지의 비현금 재평가 약 $115M이 순금융비용에 반영됐습니다. Q1 2026의 부동산 매각 이익 $377M은 이 분기에 포함되지 않습니다.",
   "status": {
     "emoji": "🟢",
-    "label": "수주·마진 동반 성장",
+    "label": "수주 사상 최대 · 마진 확대",
     "tone": "operating"
   },
   "next_checks": [
-    "Electrification 수주 증가 지속",
-    "데이터센터 주문 성장",
-    "Book-to-Bill 1.0x 이상 유지",
-    "Operational EBITA 마진 20%대 유지"
+    "데이터센터 수주 세자릿수 성장 지속",
+    "Electrification Book-to-Bill 1.41x 유지",
+    "수주잔고 $32.3B 집행 속도",
+    "Q4 Operational EBITA 마진 — 회사는 전분기 대비 소폭 둔화를 예고",
+    "순금융비용 정상화에 따른 EPS 회복"
   ],
   "break_conditions": [
     "Book-to-Bill 1.0x 미만 지속",
     "수주잔고 감소",
     "데이터센터 전력 투자 연기",
-    "마진 하락과 재고 증가 동시 발생"
+    "마진 하락과 재고 증가 동시 발생",
+    "EPS 역성장이 FX 헤지 외의 요인으로 이어짐"
   ],
-  "source_label": "ABB Q2 2026 Results",
-  "source_url": "https://new.abb.com/news/detail/137496/q2-2026-results"
+  "source_label": "ABB Q3 2026 Results",
+  "source_url": "https://new.abb.com/news/detail/139696/q3-2026-results"
 }
