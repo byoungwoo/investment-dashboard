@@ -65,7 +65,18 @@ class DashboardSmokeTest(unittest.TestCase):
 
             detail_buttons = [button for button in app.button if button.label == "🔍 Fundamental Detail"]
             self.assertEqual(4, len(detail_buttons))
-            detail_buttons[0].click().run(timeout=30)
+
+            # IREN은 축별로 방향이 갈리는 종목이다 (수요 강화 / 일정 지연 / 조달 고위험).
+            # Thesis Status 한 줄만 뜨고 세부 평가가 빠지면 패널이 상태를 숨긴 셈이 된다.
+            app.button(key="fundamental-detail-IREN").click().run(timeout=30)
+            self.assertEqual([], list(app.exception))
+            iren_panel = " ".join(item.value for item in app.markdown)
+            self.assertIn("IREN · Fundamental Detail", iren_panel)
+            self.assertIn("실행 검증 중", iren_panel)
+            self.assertIn("자금조달 · 희석", iren_panel)
+            self.assertIn("고위험", iren_panel)
+
+            app.button(key="fundamental-detail-AVGO").click().run(timeout=30)
 
         self.assertEqual([], list(app.exception))
         self.assertGreaterEqual(len(app.metric), 17)

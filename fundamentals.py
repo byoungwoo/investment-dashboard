@@ -17,46 +17,58 @@ TONE_COLORS = {
 # intentionally isolated from the Price Score, Grade, Action, and Shadow models.
 FUNDAMENTAL_DETAILS = {
     "IREN": {
-        "period": "FY2026",
-        "updated": "2026-08-27",
+        "period": "Q1 FY2027",
+        "updated": "2026-11-05",
         "badges": [
-            {"label": "ACTUAL", "value": "$128.8M", "tone": "actual", "detail": "FY26 AI revenue"},
-            {"label": "LIVE ARR", "value": "$1.0B", "tone": "operating", "detail": "Operating ARR"},
-            {"label": "CONTRACTED", "value": "$4.0B", "tone": "forward", "detail": "Contracted ARR"},
+            {"label": "Q1 AI REVENUE", "value": "$200M", "tone": "actual", "detail": "+182% QoQ"},
+            {"label": "OPERATING ARR", "value": "$1.0B", "tone": "operating", "detail": "전분기 대비 약 2배"},
+            {"label": "BACKLOG", "value": "$20.3B", "tone": "forward", "detail": "계약 기반 · +22% QoQ"},
         ],
         "flow_title": "Contract-to-Cash",
         "flow": [
-            {"label": "Contract", "value": "$4.0B ARR", "detail": "2026 capacity"},
-            {"label": "Build", "value": "Horizon 2–4", "detail": "Commissioning"},
+            {"label": "Contract", "value": "$20.3B", "detail": "계약 백로그"},
+            {"label": "Build", "value": "Horizon 1 인도", "detail": "H2 시운전 · H3 전력"},
             {"label": "Service", "value": "$1.0B ARR", "detail": "Operating"},
-            {"label": "Recognized", "value": "$128.8M", "detail": "FY26 GAAP revenue"},
+            {"label": "Recognized", "value": "$200M", "detail": "Q1 GAAP AI 매출"},
         ],
-        "financial_title": "Q4 FY2026 수익성",
+        "financial_title": "Q1 FY2027 수익성",
         "financials": [
-            {"label": "AI Cloud Revenue", "value": "+$70.5M", "tone": "actual"},
-            {"label": "Direct AI Cloud Cost", "value": "-$9.2M", "tone": "risk"},
-            {"label": "Direct Contribution", "value": "+$61.3M", "tone": "profit"},
-            {"label": "FY26 Net Income", "value": "-$702.6M", "tone": "risk"},
+            {"label": "AI Cloud Revenue", "value": "+$200M", "tone": "actual"},
+            {"label": "Bitcoin Revenue", "value": "+$28M", "tone": "actual"},
+            {"label": "Adjusted EBITDA", "value": "+$66M", "tone": "actual"},
+            {"label": "Stock-Based Compensation", "value": "-$63M", "tone": "risk"},
+            {"label": "GAAP Net Loss", "value": "-$263M", "tone": "risk"},
+            {"label": "FY27 잔여 CAPEX · 확보 / 추가 조달", "value": "$9B / $6B", "tone": "risk"},
         ],
         "financial_note": (
-            "FY26 순손실에는 기존 Bitcoin 채굴장비 전환과 관련된 비현금성 손상차손 "
-            "$638.8M이 포함됩니다. ARR는 GAAP 매출이 아니며 고객 인수 이후 매출로 인식됩니다."
+            "AI Cloud 매출 $200M은 서비스 $135M과 리스 $65M의 합이며 분기 인식 매출입니다. "
+            "Operating ARR $1.0B은 연환산 운영 지표이므로 분기 매출과 직접 비교할 수 없습니다. "
+            "AI Cloud 매출총이익률 86%는 감가상각·상각비와 데이터센터 현장비용을 제외한 수치이고, "
+            "조정 EBITDA $66M은 주식보상 $63M·감가상각·금융비용을 제외하므로 주주 귀속 현금창출력이 아닙니다. "
+            "FY27 남은 계획 투자 약 $15B 중 회사가 제시한 약 $9B에는 아직 수령하지 않은 계약상 선급금과 "
+            "조건부 약정 금융이 포함됩니다. 회사가 말하는 fully funded는 $4.0B ARR 0.3GW 프로그램에 한정된 표현입니다."
         ),
         "status": {"emoji": "🟡", "label": "실행 검증 중", "tone": "forward"},
+        "status_breakdown": [
+            {"label": "수요 · 계약", "value": "강화", "tone": "profit"},
+            {"label": "매출 전환", "value": "진전", "tone": "actual"},
+            {"label": "인도 · 가동 일정", "value": "지연", "tone": "forward"},
+            {"label": "자금조달 · 희석", "value": "고위험", "tone": "risk"},
+        ],
         "next_checks": [
-            "Horizon 2–4 고객 인수와 연말 가동",
-            "Operating ARR $4.0B 전환",
-            "2027년 분기 AI 매출의 급증",
-            "감가상각·이자비용 흡수",
+            "12월 분기 AI Cloud 매출 약 $250M (회사 기대치)",
+            "2027년 1~2월 Operating ARR $4.0B 가동",
+            "GAAP 매출 증가분이 감가상각·이자비용을 흡수하는지",
+            "추가 $6B 조달의 금리·담보·전환조건·신주 규모",
         ],
         "break_conditions": [
-            "2027년에도 AI 매출이 M 단위에 정체",
-            "고객 인수 또는 데이터센터 준공 지연",
-            "추가 대규모 증자와 주주가치 희석",
-            "계약 취소·가격 재협상",
+            "$4.0B ARR 가동이 2027년 2월 말을 또 넘김",
+            "GPU 선지급 90% 조건이 일부 계약에만 적용",
+            "$6B 조달이 대규모 신주·전환사채로 귀결",
+            "12월 분기 AI 매출이 기대치에 크게 미달",
         ],
-        "source_label": "IREN FY26 Results / SEC filing",
-        "source_url": "https://www.sec.gov/Archives/edgar/data/1878848/000187884826000051/irenreportsfy26results.htm",
+        "source_label": "IREN FY27 Q1 Results / SEC EDGAR",
+        "source_url": "https://www.sec.gov/edgar/browse/?CIK=1878848",
     },
     "AVGO": {
         "period": "Q3 FY2026",
@@ -289,6 +301,11 @@ def show_fundamental_detail(symbol):
         f'<strong>{status["emoji"]} Thesis Status: {html.escape(status["label"])}</strong></div>',
         unsafe_allow_html=True,
     )
+
+    # 세부 평가는 Thesis Status 한 줄로는 담기지 않는다. 축별로 방향이 갈릴 때
+    # (수요는 강화, 일정은 지연) 재무 행 렌더러를 그대로 재사용해 label-value로 적는다.
+    if detail.get("status_breakdown"):
+        st.markdown(_financials_html(detail["status_breakdown"]), unsafe_allow_html=True)
 
     left, right = st.columns(2)
     with left:
