@@ -1,7 +1,7 @@
 ---
 description: 이 리포의 현재 상태와 직전 작업을 복원해 10줄 브리핑을 낸다. 새 세션·새 팀원·오랜만의 복귀 때 첫 명령으로 사용.
 argument-hint: "[궁금한 영역 (선택)]"
-allowed-tools: Bash(git *) Read mcp__github
+allowed-tools: Bash(git *) Bash(cat *) Bash(ls *) Read mcp__github
 ---
 
 # 맥락 복원

@@ -14,18 +14,18 @@
 
 두 층은 역할이 다르다. 둘 다 유지한다.
 
-| 위치 | 성격 | 개수 |
-|---|---|---|
-| `test_scorer.py` (루트) | **값을 못 박는 회귀 테스트** — `assertAlmostEqual(score, 56.0)` 처럼 구체값 고정 | 12 |
-| `tests/test_scorer.py` | **성질 검사** + `opportunity` / `trend_health` / `data_confidence` / `shadow` 커버리지 | 15 |
+| 위치 | 성격 |
+|---|---|
+| `test_scorer.py` (루트) | **값을 못 박는 회귀 테스트** — `assertAlmostEqual(score, 56.0)` 처럼 구체값 고정 |
+| `tests/test_scorer.py` | **성질 검사** + `opportunity` / `trend_health` / `data_confidence` / `shadow` 커버리지 |
 
 전체 실행은 **반드시** 한 명령으로:
 
 ```bash
-python3 -m unittest discover -s . -t . -p 'test_*.py'   # 49개
+python3 -m unittest discover -s . -t . -p 'test_*.py'
 ```
 
-**`-s tests` 로 줄여 쓰면** 루트 12개를 조용히 건너뛰고 "OK"를 낸다.
+**`-s tests` 로 줄여 쓰면** 루트 `test_scorer.py` 를 조용히 건너뛰고 "OK"를 낸다.
 통과했다고 착각하게 만드는 쪽이 아무것도 안 돌리는 것보다 위험하다.
 
 ## 근거
