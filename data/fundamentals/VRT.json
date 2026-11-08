@@ -1,0 +1,90 @@
+{
+  "period": "Q2 2026",
+  "updated": "2026-07-29",
+  "badges": [
+    {
+      "label": "Q2 SALES",
+      "value": "$3.27B",
+      "tone": "actual",
+      "detail": "+24% YoY"
+    },
+    {
+      "label": "ADJ. MARGIN",
+      "value": "22.6%",
+      "tone": "profit",
+      "detail": "+410 bps"
+    },
+    {
+      "label": "FY26 GUIDE",
+      "value": "$14.0B",
+      "tone": "forward",
+      "detail": "Midpoint"
+    }
+  ],
+  "flow_title": "AI Buildout-to-Revenue",
+  "flow": [
+    {
+      "label": "Buildout",
+      "value": "AI Data Center",
+      "detail": "Structural demand"
+    },
+    {
+      "label": "Infrastructure",
+      "value": "Power + Cooling",
+      "detail": "Critical path"
+    },
+    {
+      "label": "Delivery",
+      "value": "+18%",
+      "detail": "Organic sales"
+    },
+    {
+      "label": "Q2 Sales",
+      "value": "$3.27B",
+      "detail": "+24% YoY"
+    }
+  ],
+  "financial_title": "Q2 2026 수익성",
+  "financials": [
+    {
+      "label": "Adjusted Operating Profit",
+      "value": "+$738M",
+      "tone": "profit"
+    },
+    {
+      "label": "Adjusted Operating Margin",
+      "value": "22.6%",
+      "tone": "profit"
+    },
+    {
+      "label": "Operating Cash Flow",
+      "value": "+$1.10B",
+      "tone": "actual"
+    },
+    {
+      "label": "Adjusted Free Cash Flow",
+      "value": "+$925M",
+      "tone": "profit"
+    }
+  ],
+  "financial_note": "FY26 가이던스는 매출 $13.8B–$14.2B, 유기적 성장 30–32%입니다.",
+  "status": {
+    "emoji": "🟢",
+    "label": "수요 강세 + 마진 확장",
+    "tone": "operating"
+  },
+  "next_checks": [
+    "Q3 유기적 성장률 34–36% 달성",
+    "조정 영업마진 24% 이상 진입",
+    "대형 프로젝트 납기",
+    "현금흐름이 매출 성장과 함께 증가"
+  ],
+  "break_conditions": [
+    "수주 또는 프로젝트 파이프라인 감소",
+    "연간 가이던스 하향",
+    "공급망 병목으로 반복적인 매출 인식 지연",
+    "매출 증가에도 영업마진 하락"
+  ],
+  "source_label": "Vertiv Q2 2026 Results",
+  "source_url": "https://investors.vertiv.com/news/news-details/2026/Vertiv-Reports-Strong-Second-Quarter-2026-with-Diluted-EPS-Growth-of-53-Adjusted-Diluted-EPS-Growth-of-60-Raises-Full-Year-2026-Guidance-Across-All-Key-Metrics/default.aspx"
+}

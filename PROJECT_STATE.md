@@ -5,16 +5,14 @@
 
 ## 지금 상태
 
-- 배포 주소: `lbw-portfolio.streamlit.app`
-- 테스트 전부 통과 (`python3 -m unittest discover -s . -t . -p 'test_*.py'`)
+- 배포 `lbw-portfolio.streamlit.app` · 테스트 전부 통과 (`discover -s . -t . -p 'test_*.py'`)
 - 보유 5종목: AVGO, ABB, VRT, IREN, ORCL
 - IREN 공시 스냅샷은 FY27 Q1 기준. 패널에 축별 세부 평가와 EV/ARR 병기
-- 밸류에이션 측정 불가 종목은 카드에 `Val 50 (미측정)` 로 표시 — 점수는 50 대입 유지
+- 공시 스냅샷은 `data/fundamentals/<TICKER>.json` — 필수 키·출처·날짜를 테스트가 검사 (ADR-0005)
 - `lab` / `hotfix` 는 독자 커밋 없이 뒤처진 상태 — 동결 유지
 
 ## 진행 중
 
-- 작업 트리 clean
 - 오프라인 분할매수 검증 도구는 커밋했으나 **실제 자료로 돌려보지 못했다** —
   합성 입력으로 코드 경로만 확인한 상태. 상세: `docs/backtest.md`
 
@@ -25,11 +23,10 @@
 
 ## 열린 질문
 
-- **ORCL 공시 스냅샷 없음.** `FUNDAMENTAL_DETAILS` 에 ORCL이 빠져 있어
-  `has_fundamental_detail()` 가드가 상세 버튼을 막는다. 채울지 / 비워둘지는
-  사용자 결정 사항 — 수치를 지어내지 않는다
-- **스냅샷 신선도.** ABB 2026-07-16, VRT 2026-07-29, AVGO 2026-09-02, IREN 2026-11-05.
-  IREN만 FY27 Q1로 갱신했고 ABB가 약 4개월 전이다. 갱신 주기를 정할지 미정
+- **ORCL 공시 스냅샷 없음.** 가드가 상세 버튼을 막는 상태. 다음 실적 2026-12-15 예정이므로
+  그때 `/earnings ORCL` 로 채울 수 있다 — 채울지 비워둘지는 사용자 결정
+- **ABB·VRT 스냅샷이 한 분기 밀렸다.** 각 115일 / 102일 전 기준이라 Q3 수치가 이미 나왔다.
+  `/earnings ABB`, `/earnings VRT` 로 갱신할지 결정 필요 (AVGO 67일 · IREN 3일은 최신)
 - **적자기업 밸류에이션 점수 미결정.** IREN은 forwardPE가 음수여서 50이 대입되고,
   화면에 `(미측정)` 로 드러내는 것까지만 했다. 몇 점으로 볼지는 투자 판단이라
   정하면 ADR을 먼저 쓴다. PBR 기각(IREN이 최저가가 된다), EV/ARR은 ADR-0003에 걸림

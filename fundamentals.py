@@ -1,5 +1,8 @@
 import html
+import json
 import math
+import pathlib
+from datetime import date
 
 import streamlit as st
 
@@ -16,187 +19,52 @@ TONE_COLORS = {
 
 # Official filing snapshots for the fundamental detail UI only. These values are
 # intentionally isolated from the Price Score, Grade, Action, and Shadow models.
-FUNDAMENTAL_DETAILS = {
-    "IREN": {
-        "period": "Q1 FY2027",
-        "updated": "2026-11-05",
-        "badges": [
-            {"label": "Q1 AI REVENUE", "value": "$200M", "tone": "actual", "detail": "+182% QoQ"},
-            {"label": "OPERATING ARR", "value": "$1.0B", "tone": "operating", "detail": "전분기 대비 2배"},
-            {"label": "BACKLOG", "value": "$20.3B", "tone": "forward", "detail": "+22% QoQ · 약 2/3 투자적격"},
-        ],
-        "flow_title": "Contract-to-Cash",
-        "flow": [
-            {"label": "Contract", "value": "$20.3B", "detail": "계약 백로그"},
-            {"label": "Build", "value": "Horizon 1 인도", "detail": "Microsoft · NVIDIA Exemplar · H2–4 후반 공정"},
-            {"label": "Service", "value": "$1.0B ARR", "detail": "Operating"},
-            {"label": "Recognized", "value": "$200M", "detail": "FY26 연간 $128.8M 초과"},
-        ],
-        "financial_title": "Q1 FY2027 수익성",
-        "financials": [
-            {"label": "AI Cloud Revenue", "value": "+$200M", "tone": "actual"},
-            {"label": "Bitcoin Mining Revenue", "value": "+$28M", "tone": "actual"},
-            {"label": "Total Revenue", "value": "+$228M", "tone": "actual"},
-            {"label": "Adjusted EBITDA", "value": "+$66M", "tone": "actual"},
-            {"label": "Depreciation & Amortization", "value": "-$148M", "tone": "risk"},
-            {"label": "Finance Expense", "value": "-$73M", "tone": "risk"},
-            {"label": "Stock-Based Compensation", "value": "-$106M", "tone": "risk"},
-            {"label": "GAAP Net Loss", "value": "-$263M", "tone": "risk"},
-            {"label": "FY27 잔여 CAPEX · 확보 / 추가 조달", "value": "$9B / $6B", "tone": "risk"},
-        ],
-        "financial_note": (
-            "AI Cloud 매출 $200M은 서비스 $135M과 리스 $65M의 합이며 분기 인식 매출입니다. "
-            "Operating ARR $1.0B은 연환산 운영 지표이므로 분기 매출과 직접 비교할 수 없습니다. "
-            "AI Cloud 매출총이익률 86%는 감가상각·상각비를 제외하고 데이터센터 현장비용 차감 전 수치입니다. "
-            "조정 EBITDA $66M은 위에 적은 감가상각 $148M·금융비용 $73M·주식보상 $106M을 제외한 값이므로 "
-            "주주 귀속 현금창출력이 아닙니다. 같은 분기 이자수익 $51M은 금융비용과 별도로 계상됩니다. "
-            "FY27 남은 계획 투자 약 $15B 중 회사가 제시한 약 $9B에는 아직 수령하지 않은 선급금과 "
-            "조건부 약정 금융이 포함됩니다. fully funded는 $4.0B ARR 프로그램에 한정된 표현입니다."
-        ),
-        "status": {"emoji": "🟡", "label": "실행 검증 중", "tone": "forward"},
-        "status_breakdown": [
-            {"label": "수요 · 계약", "value": "강화", "tone": "profit"},
-            {"label": "매출 전환", "value": "진전", "tone": "actual"},
-            {"label": "인도 · 가동 일정", "value": "지연 — 고객 설계 변경·공급 일정", "tone": "forward"},
-            {"label": "자금조달 · 희석", "value": "고위험", "tone": "risk"},
-        ],
-        "next_checks": [
-            "12월 분기 AI Cloud 매출 약 $250M — Horizon 추가 물량은 분기 말·연초 인도라 기여 제한",
-            "2027년 1~2월 Operating ARR $4.0B 가동",
-            "GAAP 매출 증가분이 감가상각·금융비용을 흡수하는지",
-            "추가 $6B 조달의 금리·담보·전환조건·신주 규모",
-        ],
-        "break_conditions": [
-            "$4.0B ARR 가동이 2027년 2월을 또 넘김",
-            "GPU 선지급 90% 조건이 일부 계약에만 적용",
-            "$6B 조달이 대규모 신주·전환사채로 귀결",
-            "12월 분기 AI 매출이 기대치에 크게 미달",
-        ],
-        "arr_multiples": [
-            {"label": "가동 기준 · Operating ARR $1.0B", "arr": 1.0e9, "tone": "risk"},
-            {"label": "계약 기준 · 계약 ARR $4.0B", "arr": 4.0e9, "tone": "forward"},
-        ],
-        "source_label": "IREN Q1 FY27 Results / SEC 8-K",
-        "source_url": "https://www.sec.gov/Archives/edgar/data/0001878848/000187884826000065/irenreportsq1-fy27result.htm",
-    },
-    "AVGO": {
-        "period": "Q3 FY2026",
-        "updated": "2026-09-02",
-        "badges": [
-            {"label": "REVENUE", "value": "$29.6B", "tone": "actual", "detail": "Q3 total"},
-            {"label": "AI REVENUE", "value": "$16.7B", "tone": "operating", "detail": "+221% YoY"},
-            {"label": "Q4 AI GUIDE", "value": "$21.7B", "tone": "forward", "detail": "Forward"},
-        ],
-        "flow_title": "AI Demand-to-Revenue",
-        "flow": [
-            {"label": "Demand", "value": "AI Compute", "detail": "Hyperscalers"},
-            {"label": "Design Win", "value": "ASIC + Network", "detail": "Custom silicon"},
-            {"label": "Production", "value": "$16.7B", "detail": "+54% QoQ"},
-            {"label": "Next Guide", "value": "$21.7B", "detail": "+236% YoY"},
-        ],
-        "financial_title": "Q3 FY2026 수익성",
-        "financials": [
-            {"label": "GAAP Operating Income", "value": "+$16.0B", "tone": "profit"},
-            {"label": "Free Cash Flow", "value": "+$13.7B", "tone": "profit"},
-            {"label": "FCF Margin", "value": "46%", "tone": "profit"},
-            {"label": "Total Revenue Growth", "value": "+86%", "tone": "actual"},
-        ],
-        "financial_note": "Q4 수치는 회사 가이던스이며 실제 실적이 아닙니다.",
-        "status": {"emoji": "🟢", "label": "실적 가속", "tone": "operating"},
-        "next_checks": [
-            "Q4 AI Revenue $21.7B 달성",
-            "신규 커스텀 ASIC 고객·디자인 수주",
-            "AI Networking 성장 지속",
-            "현금흐름과 마진 유지",
-        ],
-        "break_conditions": [
-            "AI 매출 성장률이 2분기 연속 급격히 둔화",
-            "AI 또는 전체 매출 가이던스 하향",
-            "주요 고객의 주문 축소",
-            "고객 집중 위험의 현실화",
-        ],
-        "source_label": "Broadcom Q3 FY2026 Results",
-        "source_url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-inc-announces-third-quarter-fiscal-year-2026-financial",
-    },
-    "ABB": {
-        "period": "Q2 2026",
-        "updated": "2026-07-16",
-        "badges": [
-            {"label": "ORDERS", "value": "$12.04B", "tone": "leading", "detail": "+30% YoY"},
-            {"label": "BOOK / BILL", "value": "1.27x", "tone": "operating", "detail": "Orders ÷ Revenue"},
-            {"label": "REVENUE", "value": "$9.48B", "tone": "actual", "detail": "+14% YoY"},
-        ],
-        "flow_title": "Demand-to-Revenue",
-        "flow": [
-            {"label": "Demand", "value": "DC + Grid", "detail": "Electrification"},
-            {"label": "Orders", "value": "$12.04B", "detail": "+30% YoY"},
-            {"label": "Execution", "value": "1.27x", "detail": "Book-to-Bill"},
-            {"label": "Revenue", "value": "$9.48B", "detail": "+14% YoY"},
-        ],
-        "financial_title": "Q2 2026 수익성",
-        "financials": [
-            {"label": "Operational EBITA", "value": "+$1.93B", "tone": "profit"},
-            {"label": "Operational EBITA Margin", "value": "20.2%", "tone": "profit"},
-            {"label": "Operating Cash Flow", "value": "+$1.15B", "tone": "actual"},
-            {"label": "Free Cash Flow", "value": "+$881M", "tone": "profit"},
-        ],
-        "financial_note": "Orders는 ABB 전체 수주이며 AI 데이터센터 전용 수치가 아닙니다.",
-        "status": {"emoji": "🟢", "label": "수주·마진 동반 성장", "tone": "operating"},
-        "next_checks": [
-            "Electrification 수주 증가 지속",
-            "데이터센터 주문 성장",
-            "Book-to-Bill 1.0x 이상 유지",
-            "Operational EBITA 마진 20%대 유지",
-        ],
-        "break_conditions": [
-            "Book-to-Bill 1.0x 미만 지속",
-            "수주잔고 감소",
-            "데이터센터 전력 투자 연기",
-            "마진 하락과 재고 증가 동시 발생",
-        ],
-        "source_label": "ABB Q2 2026 Results",
-        "source_url": "https://new.abb.com/news/detail/137496/q2-2026-results",
-    },
-    "VRT": {
-        "period": "Q2 2026",
-        "updated": "2026-07-29",
-        "badges": [
-            {"label": "Q2 SALES", "value": "$3.27B", "tone": "actual", "detail": "+24% YoY"},
-            {"label": "ADJ. MARGIN", "value": "22.6%", "tone": "profit", "detail": "+410 bps"},
-            {"label": "FY26 GUIDE", "value": "$14.0B", "tone": "forward", "detail": "Midpoint"},
-        ],
-        "flow_title": "AI Buildout-to-Revenue",
-        "flow": [
-            {"label": "Buildout", "value": "AI Data Center", "detail": "Structural demand"},
-            {"label": "Infrastructure", "value": "Power + Cooling", "detail": "Critical path"},
-            {"label": "Delivery", "value": "+18%", "detail": "Organic sales"},
-            {"label": "Q2 Sales", "value": "$3.27B", "detail": "+24% YoY"},
-        ],
-        "financial_title": "Q2 2026 수익성",
-        "financials": [
-            {"label": "Adjusted Operating Profit", "value": "+$738M", "tone": "profit"},
-            {"label": "Adjusted Operating Margin", "value": "22.6%", "tone": "profit"},
-            {"label": "Operating Cash Flow", "value": "+$1.10B", "tone": "actual"},
-            {"label": "Adjusted Free Cash Flow", "value": "+$925M", "tone": "profit"},
-        ],
-        "financial_note": "FY26 가이던스는 매출 $13.8B–$14.2B, 유기적 성장 30–32%입니다.",
-        "status": {"emoji": "🟢", "label": "수요 강세 + 마진 확장", "tone": "operating"},
-        "next_checks": [
-            "Q3 유기적 성장률 34–36% 달성",
-            "조정 영업마진 24% 이상 진입",
-            "대형 프로젝트 납기",
-            "현금흐름이 매출 성장과 함께 증가",
-        ],
-        "break_conditions": [
-            "수주 또는 프로젝트 파이프라인 감소",
-            "연간 가이던스 하향",
-            "공급망 병목으로 반복적인 매출 인식 지연",
-            "매출 증가에도 영업마진 하락",
-        ],
-        "source_label": "Vertiv Q2 2026 Results",
-        "source_url": "https://investors.vertiv.com/news/news-details/2026/Vertiv-Reports-Strong-Second-Quarter-2026-with-Diluted-EPS-Growth-of-53-Adjusted-Diluted-EPS-Growth-of-60-Raises-Full-Year-2026-Guidance-Across-All-Key-Metrics/default.aspx",
-    },
-}
+#
+# 값은 data/fundamentals/<TICKER>.json 에 있다. 분기마다 바뀌는 것은 숫자뿐이고
+# 렌더 로직은 그대로다. 데이터를 파일로 분리해 두면 스냅샷을 갱신할 때
+# 이 모듈의 함수를 건드릴 일이 없다.
+SNAPSHOT_DIR = pathlib.Path(__file__).resolve().parent / "data" / "fundamentals"
+
+
+def load_snapshots(directory=None):
+    """<TICKER>.json 을 전부 읽어 {심볼: 스냅샷} 으로 돌려준다.
+
+    파일명이 심볼이다 — 파일 안에 심볼을 다시 적으면 둘이 어긋날 수 있다.
+    """
+    directory = pathlib.Path(directory) if directory else SNAPSHOT_DIR
+    snapshots = {}
+    for path in sorted(directory.glob("*.json")):
+        with open(path, encoding="utf-8") as handle:
+            snapshots[path.stem] = json.load(handle)
+    return snapshots
+
+
+FUNDAMENTAL_DETAILS = load_snapshots()
+
+
+# 분기는 약 91일이다. 그보다 오래된 스냅샷은 다음 분기 실적이 이미 나왔을
+# 가능성이 있다 — 화면이 조용히 과거를 보여주는 것을 막는다.
+STALE_AFTER_DAYS = 100
+
+
+def snapshot_age_days(detail, today=None):
+    """스냅샷 기준일로부터 며칠 지났나. `updated` 가 날짜가 아니면 None."""
+    try:
+        updated = date.fromisoformat(detail["updated"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    return ((today or date.today()) - updated).days
+
+
+def staleness_note(detail, today=None):
+    """상세 패널에 띄울 신선도 경고. 아직 신선하면 None 을 돌려 아무것도 띄우지 않는다."""
+    age = snapshot_age_days(detail, today)
+    if age is None or age < STALE_AFTER_DAYS:
+        return None
+    return (
+        f"이 스냅샷은 {age}일 전({detail['updated']}) 공시 기준입니다. "
+        "다음 분기 실적이 이미 발표됐을 수 있습니다."
+    )
 
 
 def _tone(tone):
@@ -317,6 +185,10 @@ def show_fundamental_detail(symbol, enterprise_value=None):
     st.markdown(f"### {html.escape(symbol)} · Fundamental Detail")
     st.caption(f"{detail['period']} · Updated {detail['updated']} · 공식 공시 스냅샷")
     st.caption("이 패널은 Price Score · Grade · Action · Shadow 계산에 반영되지 않습니다.")
+
+    stale = staleness_note(detail)
+    if stale:
+        st.warning(stale)
 
     st.markdown(_kpi_html(detail["badges"]), unsafe_allow_html=True)
 

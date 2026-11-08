@@ -28,7 +28,9 @@ python3 -m unittest discover -s . -t . -p 'test_*.py'
 | `scorer.py`, `indicators.py` | **순수 계산.** 외부 I/O 없음 → 테스트하기 쉬운 곳, 반드시 테스트할 곳 |
 | `fetcher.py` | 외부 I/O (yfinance, FRED). 테스트 경계 |
 | `config.py` | 포트폴리오 정의, 가중치, Grade 임계값 |
-| `fundamentals.py` | 공시 스냅샷 (수동 입력). 점수 계산에 **미반영** |
+| `fundamentals.py` | 공시 스냅샷 **렌더 로직**. 점수 계산에 **미반영** |
+| `data/fundamentals/*.json` | 공시 스냅샷 **데이터** (종목당 1파일). 갱신은 `/earnings <티커>` |
+| `scripts/snapshot_status.py` | 스냅샷 신선도 + 다음 실적 발표일 확인 |
 | `app.py` | Streamlit UI |
 | `main.py` | CLI. `python3 main.py` 로 전 종목 점수를 표로 확인 — UI 없이 빠르게 검증할 때 |
 
@@ -56,7 +58,7 @@ investment-dashboard-hotfix  [hotfix]  ← 긴급 수정
 | 지금 상태 / 다음 할 일 | `PROJECT_STATE.md` (위에서 자동 로드) |
 | 과거 결정의 "왜" | `docs/adr/` — 뒤집기 전에 해당 ADR을 읽는다 |
 | 테스트·pyc 함정 | `.claude/rules/testing.md` (계산 파일 열 때 자동 로드) |
-| 종목 추가 절차 | `.claude/rules/portfolio.md` |
+| 종목 추가 · 스냅샷 갱신 | `.claude/rules/portfolio.md` |
 | 배포·Reboot 조건 | `.claude/rules/deploy.md` |
 | 세션 인수인계 | `/catchup` 으로 읽고, `/handoff` 로 남긴다 |
 

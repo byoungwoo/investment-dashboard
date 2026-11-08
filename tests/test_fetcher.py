@@ -1,6 +1,7 @@
 import unittest
+from datetime import date, datetime
 
-from fetcher import parse_wsj_sp500_valuation
+from fetcher import parse_earnings_calendar, parse_wsj_sp500_valuation
 
 
 WSJ_FIXTURE = """
@@ -27,6 +28,34 @@ class WsjValuationParserTest(unittest.TestCase):
     def test_missing_row_fails_closed(self):
         with self.assertRaisesRegex(ValueError, "row not found"):
             parse_wsj_sp500_valuation("<html></html>")
+
+
+class EarningsCalendarTest(unittest.TestCase):
+    TODAY = date(2026, 11, 8)
+
+    def test_picks_the_next_date_not_the_first(self):
+        calendar = {"Earnings Date": [date(2026, 8, 7), date(2026, 11, 13), date(2027, 2, 12)]}
+        self.assertEqual(date(2026, 11, 13), parse_earnings_calendar(calendar, self.TODAY))
+
+    def test_today_counts_as_upcoming(self):
+        calendar = {"Earnings Date": [self.TODAY]}
+        self.assertEqual(self.TODAY, parse_earnings_calendar(calendar, self.TODAY))
+
+    def test_only_past_dates_yield_nothing(self):
+        calendar = {"Earnings Date": [date(2026, 8, 7)]}
+        self.assertIsNone(parse_earnings_calendar(calendar, self.TODAY))
+
+    def test_accepts_datetime_and_iso_string(self):
+        for raw in (datetime(2026, 11, 13, 21, 0), "2026-11-13", "2026-11-13 21:00:00"):
+            self.assertEqual(
+                date(2026, 11, 13), parse_earnings_calendar({"Earnings Date": raw}, self.TODAY), raw
+            )
+
+    def test_unknown_shape_fails_closed(self):
+        """스키마가 바뀌면 추측하지 말고 None — 틀린 발표일이 더 나쁘다."""
+        for calendar in (None, {}, [], "2026-11-13", {"Earnings Date": None},
+                         {"Earnings Date": ["언젠가"]}):
+            self.assertIsNone(parse_earnings_calendar(calendar, self.TODAY), repr(calendar))
 
 
 if __name__ == "__main__":

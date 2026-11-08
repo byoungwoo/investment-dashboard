@@ -1,0 +1,90 @@
+{
+  "period": "Q2 2026",
+  "updated": "2026-07-16",
+  "badges": [
+    {
+      "label": "ORDERS",
+      "value": "$12.04B",
+      "tone": "leading",
+      "detail": "+30% YoY"
+    },
+    {
+      "label": "BOOK / BILL",
+      "value": "1.27x",
+      "tone": "operating",
+      "detail": "Orders ÷ Revenue"
+    },
+    {
+      "label": "REVENUE",
+      "value": "$9.48B",
+      "tone": "actual",
+      "detail": "+14% YoY"
+    }
+  ],
+  "flow_title": "Demand-to-Revenue",
+  "flow": [
+    {
+      "label": "Demand",
+      "value": "DC + Grid",
+      "detail": "Electrification"
+    },
+    {
+      "label": "Orders",
+      "value": "$12.04B",
+      "detail": "+30% YoY"
+    },
+    {
+      "label": "Execution",
+      "value": "1.27x",
+      "detail": "Book-to-Bill"
+    },
+    {
+      "label": "Revenue",
+      "value": "$9.48B",
+      "detail": "+14% YoY"
+    }
+  ],
+  "financial_title": "Q2 2026 수익성",
+  "financials": [
+    {
+      "label": "Operational EBITA",
+      "value": "+$1.93B",
+      "tone": "profit"
+    },
+    {
+      "label": "Operational EBITA Margin",
+      "value": "20.2%",
+      "tone": "profit"
+    },
+    {
+      "label": "Operating Cash Flow",
+      "value": "+$1.15B",
+      "tone": "actual"
+    },
+    {
+      "label": "Free Cash Flow",
+      "value": "+$881M",
+      "tone": "profit"
+    }
+  ],
+  "financial_note": "Orders는 ABB 전체 수주이며 AI 데이터센터 전용 수치가 아닙니다.",
+  "status": {
+    "emoji": "🟢",
+    "label": "수주·마진 동반 성장",
+    "tone": "operating"
+  },
+  "next_checks": [
+    "Electrification 수주 증가 지속",
+    "데이터센터 주문 성장",
+    "Book-to-Bill 1.0x 이상 유지",
+    "Operational EBITA 마진 20%대 유지"
+  ],
+  "break_conditions": [
+    "Book-to-Bill 1.0x 미만 지속",
+    "수주잔고 감소",
+    "데이터센터 전력 투자 연기",
+    "마진 하락과 재고 증가 동시 발생"
+  ],
+  "source_label": "ABB Q2 2026 Results",
+  "source_url": "https://new.abb.com/news/detail/137496/q2-2026-results"
+}

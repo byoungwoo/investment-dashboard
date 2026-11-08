@@ -1,0 +1,90 @@
+{
+  "period": "Q3 FY2026",
+  "updated": "2026-09-02",
+  "badges": [
+    {
+      "label": "REVENUE",
+      "value": "$29.6B",
+      "tone": "actual",
+      "detail": "Q3 total"
+    },
+    {
+      "label": "AI REVENUE",
+      "value": "$16.7B",
+      "tone": "operating",
+      "detail": "+221% YoY"
+    },
+    {
+      "label": "Q4 AI GUIDE",
+      "value": "$21.7B",
+      "tone": "forward",
+      "detail": "Forward"
+    }
+  ],
+  "flow_title": "AI Demand-to-Revenue",
+  "flow": [
+    {
+      "label": "Demand",
+      "value": "AI Compute",
+      "detail": "Hyperscalers"
+    },
+    {
+      "label": "Design Win",
+      "value": "ASIC + Network",
+      "detail": "Custom silicon"
+    },
+    {
+      "label": "Production",
+      "value": "$16.7B",
+      "detail": "+54% QoQ"
+    },
+    {
+      "label": "Next Guide",
+      "value": "$21.7B",
+      "detail": "+236% YoY"
+    }
+  ],
+  "financial_title": "Q3 FY2026 수익성",
+  "financials": [
+    {
+      "label": "GAAP Operating Income",
+      "value": "+$16.0B",
+      "tone": "profit"
+    },
+    {
+      "label": "Free Cash Flow",
+      "value": "+$13.7B",
+      "tone": "profit"
+    },
+    {
+      "label": "FCF Margin",
+      "value": "46%",
+      "tone": "profit"
+    },
+    {
+      "label": "Total Revenue Growth",
+      "value": "+86%",
+      "tone": "actual"
+    }
+  ],
+  "financial_note": "Q4 수치는 회사 가이던스이며 실제 실적이 아닙니다.",
+  "status": {
+    "emoji": "🟢",
+    "label": "실적 가속",
+    "tone": "operating"
+  },
+  "next_checks": [
+    "Q4 AI Revenue $21.7B 달성",
+    "신규 커스텀 ASIC 고객·디자인 수주",
+    "AI Networking 성장 지속",
+    "현금흐름과 마진 유지"
+  ],
+  "break_conditions": [
+    "AI 매출 성장률이 2분기 연속 급격히 둔화",
+    "AI 또는 전체 매출 가이던스 하향",
+    "주요 고객의 주문 축소",
+    "고객 집중 위험의 현실화"
+  ],
+  "source_label": "Broadcom Q3 FY2026 Results",
+  "source_url": "https://investors.broadcom.com/news-releases/news-release-details/broadcom-inc-announces-third-quarter-fiscal-year-2026-financial"
+}

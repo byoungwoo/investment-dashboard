@@ -1,5 +1,6 @@
 import html
 import re
+from datetime import date, datetime
 
 import requests
 import yfinance as yf
@@ -30,6 +31,50 @@ def fetch_history(ticker: str, period: str = "2y") -> pd.DataFrame:
 
 def fetch_info(ticker: str) -> dict:
     return yf.Ticker(ticker).info
+
+
+def _as_date(value):
+    """yfinance가 돌려주는 날짜류를 date로. 모양이 낯설면 None — 추측하지 않는다."""
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_earnings_calendar(calendar, today=None):
+    """Ticker.calendar 에서 **다음** 실적 발표일만 뽑는다.
+
+    yfinance 버전에 따라 dict / 빈 값 / 리스트가 온다. 모양이 다르면 None을 돌린다 —
+    틀린 발표일은 없는 발표일보다 나쁘다 (스냅샷 갱신 시점을 놓치게 만든다).
+    """
+    if not isinstance(calendar, dict):
+        return None
+    raw = calendar.get("Earnings Date")
+    if raw is None:
+        return None
+    candidates = raw if isinstance(raw, (list, tuple)) else [raw]
+    today = today or date.today()
+    upcoming = sorted(
+        parsed for parsed in (_as_date(item) for item in candidates)
+        if parsed is not None and parsed >= today
+    )
+    return upcoming[0] if upcoming else None
+
+
+def fetch_next_earnings(ticker: str):
+    """다음 실적 발표일 (date) 또는 None.
+
+    /earnings 스킬이 "언제 갱신해야 하나"를 묻는 데 쓴다. 네트워크·스키마 변경으로
+    실패하면 None을 돌려 스킬이 "발표일 미확인"으로 진행하게 한다.
+    """
+    try:
+        return parse_earnings_calendar(yf.Ticker(ticker).calendar)
+    except Exception:
+        return None
 
 
 def parse_wsj_sp500_valuation(page: str) -> dict:
