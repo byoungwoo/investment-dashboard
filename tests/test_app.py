@@ -30,7 +30,13 @@ class DashboardSmokeTest(unittest.TestCase):
         fake_history = price_history()
         replacements = {
             "fetcher.fetch_history": lambda ticker, period="2y": fake_history.copy(),
-            "fetcher.fetch_info": lambda ticker: {"forwardPE": 25.0, "pegRatio": 1.5},
+            # IREN은 적자라 Yahoo가 음수 forwardPE를 준다 — 밸류에이션 측정 불가 경로를
+            # 실제 값으로 태운다. enterpriseValue는 EV/ARR 배수를 그리게 하려고 넣는다.
+            "fetcher.fetch_info": lambda ticker: (
+                {"forwardPE": -5.49, "pegRatio": 3.11, "enterpriseValue": 15.9e9}
+                if ticker == "IREN"
+                else {"forwardPE": 25.0, "pegRatio": 1.5}
+            ),
             "fetcher.fetch_macro": lambda: {
                 "t10y": 4.3,
                 "t30y": 4.6,
@@ -75,6 +81,17 @@ class DashboardSmokeTest(unittest.TestCase):
             self.assertIn("실행 검증 중", iren_panel)
             self.assertIn("자금조달 · 희석", iren_panel)
             self.assertIn("고위험", iren_panel)
+
+            # 측정 못한 50은 측정해서 나온 50과 화면에서 구별돼야 한다.
+            # 적자로 밸류에이션이 비는 종목은 IREN 하나뿐이므로 정확히 한 번 나온다.
+            self.assertEqual(1, iren_panel.count("(미측정)"))
+            self.assertIn("Val 50 (미측정)", iren_panel)
+
+            # EV/ARR은 공시 스냅샷이 아니라 라이브 시장값이다. 두 배수의 간격이
+            # 미가동 ARR이고, 그게 이 종목의 핵심 위험이다.
+            self.assertIn("EV / ARR · 라이브 시장값", iren_panel)
+            self.assertIn("15.9x", iren_panel)
+            self.assertIn("4.0x", iren_panel)
 
             app.button(key="fundamental-detail-AVGO").click().run(timeout=30)
 

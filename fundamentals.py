@@ -1,4 +1,5 @@
 import html
+import math
 
 import streamlit as st
 
@@ -70,6 +71,10 @@ FUNDAMENTAL_DETAILS = {
             "GPU 선지급 90% 조건이 일부 계약에만 적용",
             "$6B 조달이 대규모 신주·전환사채로 귀결",
             "12월 분기 AI 매출이 기대치에 크게 미달",
+        ],
+        "arr_multiples": [
+            {"label": "가동 기준 · Operating ARR $1.0B", "arr": 1.0e9, "tone": "risk"},
+            {"label": "계약 기준 · 계약 ARR $4.0B", "arr": 4.0e9, "tone": "forward"},
         ],
         "source_label": "IREN Q1 FY27 Results / SEC 8-K",
         "source_url": "https://www.sec.gov/Archives/edgar/data/0001878848/000187884826000065/irenreportsq1-fy27result.htm",
@@ -207,6 +212,31 @@ def has_fundamental_detail(symbol):
     return symbol in FUNDAMENTAL_DETAILS
 
 
+def arr_multiples(detail, enterprise_value):
+    """공시 ARR을 분모로 라이브 EV 배수를 낸다.
+
+    EV는 주가라서 매일 바뀐다. 공시 스냅샷과 같은 블록에 두면 "Updated" 날짜가
+    거짓이 되므로 호출부에서 분리해 렌더한다. EV가 없으면 빈 리스트를 돌려
+    아무것도 그리지 않는다 — 배수를 지어내지 않는다.
+    """
+    spec = detail.get("arr_multiples")
+    if not spec or isinstance(enterprise_value, bool):
+        return []
+    if not isinstance(enterprise_value, (int, float)):
+        return []
+    # yfinance는 결측을 NaN으로 주기도 한다. 걸러내지 않으면 "nanx"가 렌더된다.
+    if not math.isfinite(enterprise_value) or enterprise_value <= 0:
+        return []
+    return [
+        {
+            "label": item["label"],
+            "value": f'{enterprise_value / item["arr"]:.1f}x',
+            "tone": item["tone"],
+        }
+        for item in spec
+    ]
+
+
 def fundamental_badges_html(symbol):
     detail = FUNDAMENTAL_DETAILS.get(symbol)
     if not detail:
@@ -282,7 +312,7 @@ def _financials_html(financials):
 
 
 @st.dialog("Fundamental Detail", width="large")
-def show_fundamental_detail(symbol):
+def show_fundamental_detail(symbol, enterprise_value=None):
     detail = FUNDAMENTAL_DETAILS[symbol]
     st.markdown(f"### {html.escape(symbol)} · Fundamental Detail")
     st.caption(f"{detail['period']} · Updated {detail['updated']} · 공식 공시 스냅샷")
@@ -292,6 +322,16 @@ def show_fundamental_detail(symbol):
 
     st.markdown(f"#### {detail['flow_title']}")
     st.markdown(_flow_html(detail["flow"]), unsafe_allow_html=True)
+
+    multiples = arr_multiples(detail, enterprise_value)
+    if multiples:
+        st.markdown("#### EV / ARR · 라이브 시장값")
+        st.markdown(_financials_html(multiples), unsafe_allow_html=True)
+        st.caption(
+            "EV는 주가에 따라 매일 바뀌므로 위 공시 스냅샷의 일부가 아닙니다. "
+            "두 배수의 간격이 아직 가동되지 않은 ARR이며, 그 전환은 가동 일정에 달려 있습니다. "
+            "계약 기준 배수는 미가동 ARR을 분모에 넣은 값이므로 일정이 밀릴수록 싸 보입니다."
+        )
 
     st.markdown(f"#### {detail['financial_title']}")
     st.markdown(_financials_html(detail["financials"]), unsafe_allow_html=True)

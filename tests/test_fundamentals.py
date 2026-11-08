@@ -3,6 +3,7 @@ import unittest
 from config import PORTFOLIO
 from fundamentals import (
     FUNDAMENTAL_DETAILS,
+    arr_multiples,
     TONE_COLORS,
     _financials_html,
     fundamental_badges_html,
@@ -63,6 +64,26 @@ class FundamentalDetailsTest(unittest.TestCase):
         detail = FUNDAMENTAL_DETAILS["IREN"]
         self.assertIn("q1-fy27", detail["source_url"])
         self.assertTrue(detail["source_url"].startswith("https://www.sec.gov/Archives/"))
+
+    def test_arr_multiples_use_the_disclosed_denominators(self):
+        detail = FUNDAMENTAL_DETAILS["IREN"]
+        rows = arr_multiples(detail, 15.9e9)
+        self.assertEqual(["15.9x", "4.0x"], [r["value"] for r in rows])
+        # 분모는 패널에 적힌 ARR과 같아야 한다. 표시 문자열을 파싱하지 않고
+        # 숫자를 따로 두는 이유 — "$1.0B"가 바뀌면 배수도 함께 바뀌어야 한다.
+        self.assertEqual([1.0e9, 4.0e9], [item["arr"] for item in detail["arr_multiples"]])
+
+    def test_arr_multiples_never_invent_a_number(self):
+        """EV를 못 구하면 배수를 그리지 않는다 — 0으로 나누거나 추정하지 않는다."""
+        detail = FUNDAMENTAL_DETAILS["IREN"]
+        for bad in (None, 0, -1, float("nan"), "15.9B"):
+            self.assertEqual([], arr_multiples(detail, bad), repr(bad))
+
+    def test_arr_multiples_only_where_arr_is_disclosed(self):
+        for symbol, detail in FUNDAMENTAL_DETAILS.items():
+            if symbol == "IREN":
+                continue
+            self.assertEqual([], arr_multiples(detail, 15.9e9), symbol)
 
     def test_status_breakdown_is_optional_and_rendered_by_the_row_renderer(self):
         breakdown = FUNDAMENTAL_DETAILS["IREN"]["status_breakdown"]

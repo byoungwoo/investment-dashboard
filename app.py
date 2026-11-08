@@ -131,6 +131,7 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
         "_trend_metrics": {},
         "_data_date": None,
         "_benchmark": cfg.get("benchmark", "SPY"),
+        "_enterprise_value": None,
         "_shadow_error": None,
         "_error": None,
     }
@@ -152,6 +153,7 @@ def analyze(symbol: str, cfg: dict, m_score: float) -> dict:
             "Tech": None if t_score is None else round(t_score),
             "_val_detail": v_detail,
             "_tech_detail": t_detail,
+            "_enterprise_value": info.get("enterpriseValue"),
         })
         if t_score is None:
             base.update({
@@ -447,6 +449,12 @@ for i, row in enumerate(rows):
         grade_color = GRADE_COLOR.get(grade, "#6b7280")
         score_str   = f"{row['Score']:.1f}" if row["Score"] is not None else "N/A"
         val_str     = f"{row['Val']:.0f}"   if row["Val"]   is not None else "N/A"
+        # 밸류에이션을 못 구하면 effective_val에 50을 대입한다(아래 price_score 호출부).
+        # 칩에 "50"만 뜨면 측정해서 나온 50과 구별되지 않으므로 이름을 붙인다.
+        val_substituted = row["Val"] is not None and row["_val_detail"] == "N/A"
+        val_chip    = f"Val {val_str}" + (" (미측정)" if val_substituted else "")
+        val_chip_bg = ("rgba(217,119,6,.13);color:#b45309;font-weight:600;"
+                       if val_substituted else "rgba(49,51,63,0.07);")
         tech_str    = f"{row['Tech']:.0f}"  if row["Tech"]  is not None else "N/A"
         opportunity_str = f"{row['Opportunity']:.1f}" if row["Opportunity"] is not None else "N/A"
         trend_str = f"{row['Trend']:.1f}" if row["Trend"] is not None else "N/A"
@@ -497,7 +505,7 @@ for i, row in enumerate(rows):
                 {score_str}<span style="font-size:13px;font-weight:400;color:#6b7280;"> / 100</span>
               </div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                <span style="background:rgba(49,51,63,0.07);border-radius:6px;padding:3px 9px;font-size:12px;">Val {val_str}</span>
+                <span style="background:{val_chip_bg}border-radius:6px;padding:3px 9px;font-size:12px;">{val_chip}</span>
                 <span style="background:rgba(49,51,63,0.07);border-radius:6px;padding:3px 9px;font-size:12px;">Tech {tech_str}</span>
                 <span style="background:rgba(49,51,63,0.07);border-radius:6px;padding:3px 9px;font-size:12px;">Macro {row['Macro']}</span>
               </div>
@@ -539,7 +547,7 @@ for i, row in enumerate(rows):
             key=f"fundamental-detail-{row['_symbol']}",
             use_container_width=True,
         ):
-            show_fundamental_detail(row["_symbol"])
+            show_fundamental_detail(row["_symbol"], row["_enterprise_value"])
         st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
 
 # ── Shadow Model 상세 ──────────────────────────────────────────────────────────
