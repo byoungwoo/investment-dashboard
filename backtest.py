@@ -125,11 +125,14 @@ def simulate_buys(prices, signals, rules=None, initial_cash=10000.0):
     # Include initial capital in the peak so the first day's loss counts.
     peaks = curve.cummax().clip(lower=initial_cash)
     benchmark_shares = initial_cash / (prices['Open'].iloc[0] * (1 + cost))
+    # 같은 평가 기간 첫 시가에 전액 매수해 보유한 곡선. 요약의 수익률만 내보내면
+    # 어느 구간에서 벌어졌는지 볼 수 없다 — 곡선과 요약은 같은 식에서 나와야 한다.
+    buy_hold = (benchmark_shares * prices['Close']).rename('buy_hold')
     return {
-        'trades': pd.DataFrame(trades), 'equity': curve,
+        'trades': pd.DataFrame(trades), 'equity': curve, 'buy_hold': buy_hold,
         'return_pct': (curve.iloc[-1] / initial_cash - 1) * 100,
         'max_drawdown_pct': ((curve / peaks - 1) * 100).min(),
-        'buy_hold_return_pct': (benchmark_shares * prices['Close'].iloc[-1] / initial_cash - 1) * 100,
+        'buy_hold_return_pct': (buy_hold.iloc[-1] / initial_cash - 1) * 100,
         'cash_remaining': cash,
         'eligible_days': int(signals['eligible'].fillna(False).sum()),
         'opportunity_coverage_pct': float(signals['opportunity'].notna().mean() * 100),
@@ -168,7 +171,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     signals.to_csv(output / 'signals.csv')
     result.pop('trades').to_csv(output / 'trades.csv', index=False)
-    result.pop('equity').to_csv(output / 'equity.csv')
+    pd.concat([result.pop('equity'), result.pop('buy_hold')], axis=1).to_csv(output / 'equity.csv')
     result['rules'] = vars(rules)
     result['warning'] = ('Experimental buy-only simulation; missing valuation dates never trigger buys. '
                          'Zero trades do not establish strategy performance. No sell rule or cash interest. '

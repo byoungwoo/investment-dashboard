@@ -68,6 +68,20 @@ class BacktestTests(unittest.TestCase):
         self.assertAlmostEqual(1., result['trades']['fee'].iloc[0])
         self.assertAlmostEqual((90 / 101 - 1) * 100, result['max_drawdown_pct'])
 
+    def test_buy_hold_curve_matches_its_summary_number(self):
+        """곡선과 요약 수익률이 갈리면 차트가 요약과 다른 이야기를 한다."""
+        bars = prices(5)
+        bars.loc[:, 'Open'] = 100.
+        bars.loc[:, 'Close'] = 120.
+        signals = pd.DataFrame({'eligible': False, 'opportunity': 10.}, index=bars.index)
+        result = simulate_buys(bars, signals, BuyRules(cost_bps=0), initial_cash=1000)
+        curve = result['buy_hold']
+        self.assertEqual(list(bars.index), list(curve.index))
+        # 100에 1000어치(10주) 사서 120에 평가 → 1200, 즉 +20%
+        self.assertAlmostEqual(1200., curve.iloc[-1])
+        self.assertAlmostEqual(20., result['buy_hold_return_pct'])
+        self.assertAlmostEqual((curve.iloc[-1] / 1000 - 1) * 100, result['buy_hold_return_pct'])
+
     def test_last_close_signal_is_not_executed(self):
         bars = prices(3)
         signals = pd.DataFrame({'eligible': [False, False, True], 'opportunity': 80.}, index=bars.index)
