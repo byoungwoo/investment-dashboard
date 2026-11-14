@@ -10,9 +10,9 @@
 import csv
 import html
 import json
+import math
 import pathlib
 import sys
-from datetime import date
 
 # dataviz 스킬의 기준 팔레트. 라이트/다크 양쪽 ALL PASS 검증된 슬롯 1·2다.
 #   node scripts/validate_palette.js "#2a78d6,#eb6834" --mode light
@@ -24,7 +24,7 @@ SERIES = [
 
 WIDTH, HEIGHT = 920, 380
 LABEL_MIN_GAP = 14          # 11px 글자가 겹치지 않는 최소 세로 간격
-PAD = {"top": 18, "right": 112, "bottom": 34, "left": 68}
+PAD = {"top": 18, "right": 124, "bottom": 34, "left": 68}
 
 
 def read_equity(directory):
@@ -59,7 +59,8 @@ def _scales(rows):
               if (v := row.get(key)) is not None]
     low, high = min(values), max(values)
     if low == high:                      # 평평한 곡선도 선이 보여야 한다
-        low, high = low * 0.99, high * 1.01
+        pad = abs(low) * 0.01 or 1.0     # 값이 0이면 비율 패딩도 0이라 0으로 나눈다
+        low, high = low - pad, high + pad
     span = high - low
     low, high = low - span * 0.08, high + span * 0.08
     plot_w = WIDTH - PAD["left"] - PAD["right"]
@@ -75,8 +76,34 @@ def _scales(rows):
     return x, y, low, high
 
 
+def _nice_step(span, count):
+    """1·2·5 × 10ⁿ 중 이상적 간격에 가장 가까운 단계. 올림만 하면 간격이 두 배로
+    튀어 눈금이 두어 개만 남는다 — 그래서 로그상 거리로 가장 가까운 것을 고른다."""
+    raw = span / max(count - 1, 1)
+    if raw <= 0:
+        return 1.0
+    power = 10 ** math.floor(math.log10(raw))
+    candidates = [mult * power for mult in (1, 2, 5, 10)]
+    return min(candidates, key=lambda step: abs(math.log10(step / raw)))
+
+
 def _ticks(low, high, count=5):
-    return [low + (high - low) * i / (count - 1) for i in range(count)]
+    """눈금은 9,613,346 이 아니라 10,000,000 으로 읽혀야 한다. 범위 안에 드는
+    배수만 남기므로 개수는 count 와 다를 수 있다 — 깔끔한 수가 우선이다."""
+    step = _nice_step(high - low, count)
+    value = math.ceil(low / step) * step
+    ticks = []
+    while value <= high + step * 1e-9:
+        ticks.append(value)
+        value += step
+    return ticks or [low, high]
+
+
+def _js(value):
+    """<script> 안에 박는 JSON. `</script>` 가 든 CSV 한 줄이 페이지를 끊어먹지
+    않도록 꺾쇠와 앰퍼샌드까지 escape 한다 — json.dumps 는 거기까지 하지 않는다."""
+    return (json.dumps(value, ensure_ascii=False)
+            .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
 
 def _money(value):
@@ -107,7 +134,8 @@ def _svg(rows, trades, initial):
     for i in {0, len(rows) // 2, len(rows) - 1}:
         anchor = "start" if i == 0 else ("end" if i == len(rows) - 1 else "middle")
         parts.append(f'<text x="{x(i):.1f}" y="{HEIGHT - PAD["bottom"] + 20}" '
-                     f'text-anchor="{anchor}" class="tick">{rows[i]["date"]}</text>')
+                     f'text-anchor="{anchor}" class="tick">'
+                     f'{html.escape(rows[i]["date"])}</text>')
 
     # 선 — 2px, round join/cap
     ends = []
@@ -118,10 +146,11 @@ def _svg(rows, trades, initial):
             continue
         path = " ".join(f'{"M" if n == 0 else "L"}{px:.1f} {py:.1f}'
                         for n, (px, py) in enumerate(points))
-        parts.append(f'<path d="{path}" fill="none" stroke="var(--series-{index})" '
-                     f'stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>')
+        parts.append(f'<path class="series" d="{path}" fill="none" '
+                     f'stroke="var(--series-{index})" stroke-width="2" '
+                     f'stroke-linejoin="round" stroke-linecap="round"/>')
         ends.append({"index": index, "x": points[-1][0], "y": points[-1][1],
-                     "label": series["label"]})
+                     "y_line": points[-1][1], "label": series["label"]})
 
     # 직접 라벨 — 범례와 함께 두어 색만으로 구분하지 않게 한다. 두 곡선이 비슷한
     # 값으로 끝나면 라벨이 겹치므로 최소 간격까지 벌린다. 흔한 경우다.
@@ -141,8 +170,16 @@ def _svg(rows, trades, initial):
             upper["y"] -= overlap / 2
             lower["y"] += overlap / 2
     for end in ends:
-        parts.append(f'<text x="{end["x"] + 8:.1f}" y="{end["y"] + 4:.1f}" class="direct" '
-                     f'fill="var(--series-{end["index"]})">{html.escape(end["label"])}</text>')
+        # 벌린 라벨은 제 선에서 떨어진다. 연결선으로 다시 붙이고, 그 끝의 가로
+        # 토막이 색 키 노릇을 한다 — 글자 자체에는 계열색을 입히지 않는다.
+        # #eb6834 은 라이트 표면에서 3.12:1 이라 본문 글자 대비에 못 미친다.
+        parts.append(f'<path class="leader" d="M{end["x"]:.1f} {end["y_line"]:.1f} '
+                     f'L{end["x"] + 6:.1f} {end["y"]:.1f} '
+                     f'L{end["x"] + 16:.1f} {end["y"]:.1f}" fill="none" '
+                     f'stroke="var(--series-{end["index"]})" stroke-width="2" '
+                     f'stroke-linejoin="round" stroke-linecap="round"/>')
+        parts.append(f'<text x="{end["x"] + 22:.1f}" y="{end["y"] + 4:.1f}" '
+                     f'class="direct">{html.escape(end["label"])}</text>')
 
     # 체결 지점 — 표면색 2px 링을 둘러 선 위에서도 읽히게 한다
     by_date = {row["date"]: i for i, row in enumerate(rows)}
@@ -153,8 +190,9 @@ def _svg(rows, trades, initial):
         parts.append(f'<circle cx="{x(i):.1f}" cy="{y(rows[i]["equity"]):.1f}" r="4.5" '
                      f'fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>')
 
-    return (f'<svg viewBox="0 0 {WIDTH} {HEIGHT}" width="100%" '
-            f'role="img" aria-label="백테스트 평가액 추이">{"".join(parts)}</svg>')
+    return (f'<svg viewBox="0 0 {WIDTH} {HEIGHT}" width="100%" tabindex="0" '
+            f'role="img" aria-label="백테스트 평가액 추이. 좌우 화살표로 날짜별 값을 읽는다"'
+            f'>{"".join(parts)}</svg>')
 
 
 def _stat(label, value, tone=""):
@@ -166,7 +204,7 @@ def _table(rows, trades):
     traded = set(trades)
     body = "".join(
         "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
-            row["date"],
+            html.escape(row["date"]),
             _money(row["equity"]) if row.get("equity") is not None else "—",
             _money(row["buy_hold"]) if row.get("buy_hold") is not None else "—",
             "체결" if row["date"] in traded else "",
@@ -191,13 +229,15 @@ def render(directory):
 
     strategy = summary.get("return_pct")
     hold = summary.get("buy_hold_return_pct")
-    gap = (f"{strategy - hold:+.2f}%p"
-           if isinstance(strategy, (int, float)) and isinstance(hold, (int, float)) else "N/A")
+    comparable = isinstance(strategy, (int, float)) and isinstance(hold, (int, float))
+    gap = f"{strategy - hold:+.2f}%p" if comparable else "N/A"
+    # 부호가 이미 방향을 말한다 — 색은 거드는 채널이지 혼자 뜻을 지지 않는다
+    gap_tone = ("good" if strategy >= hold else "bad") if comparable else ""
 
     stats = "".join([
         _stat("분할매수 전략", pct("return_pct")),
         _stat("전량 매수보유", pct("buy_hold_return_pct")),
-        _stat("차이", gap),
+        _stat("차이", gap, gap_tone),
         _stat("최대 낙폭", pct("max_drawdown_pct")),
         _stat("체결", f"{len(trades)}회"),
         _stat("Opportunity 자료 커버리지",
@@ -207,8 +247,9 @@ def render(directory):
     # 거래가 없으면 수익률 0%가 "전략이 본전"으로 읽힌다. 실제로는 아무것도 안 산 것이다.
     notice = ""
     if not trades:
-        notice = ('<p class="notice">체결이 0회다. 조건이 성립한 날이 없었거나 '
-                  '시점별 밸류에이션 자료가 없었다는 뜻이며, <strong>전략 성과가 아니다.</strong></p>')
+        notice = ('<p class="notice"><span aria-hidden="true">⚠</span> 체결이 0회다. '
+                  '조건이 성립한 날이 없었거나 시점별 밸류에이션 자료가 없었다는 뜻이며, '
+                  '<strong>전략 성과가 아니다.</strong></p>')
 
     return f"""<meta charset="utf-8">
 <title>백테스트 평가액 추이</title>
@@ -220,6 +261,8 @@ def render(directory):
     --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
     --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
     --series-1: #2a78d6; --series-2: #eb6834;
+    /* 상태색은 테마를 타지 않는다. 계열색을 상태에 돌려 쓰지 않으려고 따로 둔다 */
+    --good: #0ca30c; --critical: #d03b3b; --warning: #fab219;
   }}
   @media (prefers-color-scheme: dark) {{
     :root:where(:not([data-theme="light"])) .viz-root {{
@@ -247,23 +290,35 @@ def render(directory):
            border-radius: 12px; padding: 18px; max-width: 1000px; margin: 0 auto; }}
   h1 {{ font-size: 17px; margin: 0 0 2px; }}
   .sub {{ color: var(--ink-2); font-size: 12px; margin: 0 0 16px; }}
-  .stats {{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }}
-  .stat {{ flex: 1 1 128px; border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }}
-  .stat-label {{ font-size: 11px; color: var(--ink-2); }}
+  .stats {{ display: grid; gap: 8px; margin-bottom: 14px;
+            grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); }}
+  .stat {{ border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }}
+  /* keep-all 이 없으면 "커버리지"가 음절 중간에서 끊긴다 */
+  .stat-label {{ font-size: 11px; color: var(--ink-2); word-break: keep-all; }}
   .stat-value {{ font-size: 19px; font-weight: 700; margin-top: 1px; }}
+  .stat-value.good {{ color: var(--good); }}
+  .stat-value.bad {{ color: var(--critical); }}
   .legend {{ display: flex; gap: 16px; align-items: center; margin: 0 0 6px;
              font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }}
-  .swatch {{ display: inline-block; width: 11px; height: 11px; border-radius: 3px;
-             margin-right: 6px; vertical-align: -1px; }}
+  .key {{ display: inline-block; width: 16px; height: 2px; border-radius: 2px;
+          margin-right: 6px; vertical-align: 4px; }}
+  .key.dot {{ width: 9px; height: 9px; border-radius: 50%; vertical-align: -1px; }}
   .chart {{ position: relative; overflow-x: auto; }}
   text.tick {{ fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }}
-  text.direct {{ font-size: 11px; font-weight: 600; }}
-  .notice {{ border-left: 3px solid var(--series-2); background: var(--plane);
+  text.direct {{ font-size: 11px; font-weight: 600; fill: var(--ink-2); }}
+  .notice {{ border-left: 3px solid var(--warning); background: var(--plane);
              padding: 9px 12px; border-radius: 6px; font-size: 12.5px; color: var(--ink-2); }}
   #tip {{ position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
           background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
           padding: 7px 9px; font-size: 12px; white-space: nowrap;
           box-shadow: 0 2px 10px rgba(0,0,0,.14); font-variant-numeric: tabular-nums; }}
+  #tip .tip-date {{ color: var(--ink-2); font-size: 11px; margin-bottom: 2px; }}
+  #tip .tip-row {{ display: flex; align-items: center; gap: 6px; line-height: 1.55; }}
+  #tip .tip-value {{ color: var(--ink); font-weight: 700; }}
+  #tip .tip-name {{ color: var(--ink-2); font-size: 11px; }}
+  #tip .tip-trade {{ color: var(--ink-2); font-size: 11px; margin-top: 2px; }}
+  #tip .tip-trade:empty {{ display: none; }}
+  .chart svg:focus-visible {{ outline: 2px solid var(--ink-2); outline-offset: 2px; }}
   details {{ margin-top: 14px; font-size: 13px; color: var(--ink-2); }}
   .scroll {{ overflow-x: auto; max-height: 320px; overflow-y: auto; }}
   table {{ border-collapse: collapse; font-size: 12px; margin-top: 8px; width: 100%; }}
@@ -278,15 +333,19 @@ def render(directory):
   <div class="stats">{stats}</div>
   {notice}
   <div class="legend">
-    <span><span class="swatch" style="background:var(--series-1)"></span>분할매수 전략</span>
-    <span><span class="swatch" style="background:var(--series-2)"></span>전량 매수보유</span>
-    <span><span class="swatch" style="background:var(--series-1);border-radius:50%"></span>체결 시점</span>
+    <span><span class="key" style="background:var(--series-1)"></span>분할매수 전략</span>
+    <span><span class="key" style="background:var(--series-2)"></span>전량 매수보유</span>
+    <span><span class="key dot" style="background:var(--series-1)"></span>체결 시점</span>
   </div>
-  <div class="chart" id="chart">{_svg(rows, trades, initial)}<div id="tip"></div></div>
+  <div class="chart" id="chart">{_svg(rows, trades, initial)}<div id="tip" role="status"
+       aria-live="polite"></div></div>
   {_table(rows, trades)}
 </div></div>
 <script>
-const DATA = {json.dumps(rows, ensure_ascii=False)};
+const DATA = {_js(rows)};
+const TRADED = new Set({_js(sorted(set(trades)))});
+const KEYS = {_js([{"key": s["key"], "slot": i, "name": s["label"]}
+                   for i, s in enumerate(SERIES, start=1)])};
 const chart = document.getElementById('chart');
 const svg = chart.querySelector('svg');
 const tip = document.getElementById('tip');
@@ -298,23 +357,69 @@ line.setAttribute('y1', {PAD["top"]});
 line.setAttribute('y2', {HEIGHT - PAD["bottom"]});
 line.setAttribute('opacity', '0');
 svg.appendChild(line);
+
+// 툴팁은 한 번 짓고 textContent 로만 갱신한다. 날짜는 CSV에서 온 값이라
+// innerHTML 로 꽂으면 자료가 마크업이 된다.
+const add = (tag, cls, parent) => {{
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  (parent || tip).appendChild(node);
+  return node;
+}};
+const tipDate = add('div', 'tip-date');
+const values = {{}};
+for (const s of KEYS) {{
+  const row = add('div', 'tip-row');
+  add('span', 'key', row).style.background = 'var(--series-' + s.slot + ')';
+  values[s.key] = add('strong', 'tip-value', row);   // 값이 먼저, 이름은 거든다
+  add('span', 'tip-name', row).textContent = s.name;
+}}
+const tipTrade = add('div', 'tip-trade');
+
 const fmt = v => v == null ? '—' : v.toLocaleString(undefined, {{maximumFractionDigits: 0}});
+let active = -1;
+
+function show(i) {{
+  active = Math.max(0, Math.min(DATA.length - 1, i));
+  const row = DATA[active];
+  const px = L + (R - L) * active / Math.max(DATA.length - 1, 1);
+  line.setAttribute('x1', px); line.setAttribute('x2', px); line.setAttribute('opacity', '1');
+  tipDate.textContent = row.date;
+  for (const s of KEYS) values[s.key].textContent = fmt(row[s.key]);
+  // 체결 점은 반지름 4.5px 이라 그 자체를 겨냥할 수 없다 — 크로스헤어가 대신 알린다
+  tipTrade.textContent = TRADED.has(row.date) ? '이 날 체결' : '';
+  tip.style.opacity = 1;
+  const box = svg.getBoundingClientRect();
+  const left = px / W * box.width;
+  tip.style.left = Math.max(0, Math.min(left + 14, box.width - tip.offsetWidth - 4)) + 'px';
+  tip.style.top = '14px';
+}}
+
+function hide() {{
+  tip.style.opacity = 0;
+  line.setAttribute('opacity', '0');
+}}
+
 svg.addEventListener('pointermove', event => {{
   const box = svg.getBoundingClientRect();
   const vx = (event.clientX - box.left) / box.width * W;
-  if (vx < L || vx > R) {{ tip.style.opacity = 0; line.setAttribute('opacity', '0'); return; }}
-  const i = Math.round((vx - L) / (R - L) * (DATA.length - 1));
-  const row = DATA[Math.max(0, Math.min(DATA.length - 1, i))];
-  const px = L + (R - L) * i / (DATA.length - 1);
-  line.setAttribute('x1', px); line.setAttribute('x2', px); line.setAttribute('opacity', '1');
-  tip.innerHTML = `<strong>${{row.date}}</strong><br>전략 ${{fmt(row.equity)}}<br>매수보유 ${{fmt(row.buy_hold)}}`;
-  tip.style.opacity = 1;
-  const left = px / W * box.width;
-  tip.style.left = Math.min(left + 12, box.width - 150) + 'px';
-  tip.style.top = '14px';
+  if (vx < L || vx > R) {{ hide(); return; }}
+  show(Math.round((vx - L) / (R - L) * (DATA.length - 1)));
 }});
-svg.addEventListener('pointerleave', () => {{
-  tip.style.opacity = 0; line.setAttribute('opacity', '0');
+svg.addEventListener('pointerleave', hide);
+
+// 호버로만 읽히게 두지 않는다 — 키보드에서도 같은 값이 나온다
+svg.addEventListener('focus', () => show(active < 0 ? 0 : active));
+svg.addEventListener('blur', hide);
+svg.addEventListener('keydown', event => {{
+  const step = event.shiftKey ? 10 : 1;
+  if (event.key === 'ArrowRight') show(active + step);
+  else if (event.key === 'ArrowLeft') show(active - step);
+  else if (event.key === 'Home') show(0);
+  else if (event.key === 'End') show(DATA.length - 1);
+  else if (event.key === 'Escape') hide();
+  else return;
+  event.preventDefault();
 }});
 </script>
 """

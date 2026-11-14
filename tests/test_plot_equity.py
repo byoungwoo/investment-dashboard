@@ -40,6 +40,29 @@ def coordinates(markup):
     return xs, ys
 
 
+def tick_labels(markup):
+    """y축 눈금만 — x축 날짜는 하이픈이 있어 숫자 패턴에 걸리지 않는다."""
+    found = re.findall(r'class="tick">([^<]+)</text>', markup)
+    return [v for v in found if re.fullmatch(r"[\d,]+", v)]
+
+
+def leaders(markup):
+    """연결선: (선 끝 y, 라벨 쪽 y)"""
+    out = []
+    for d in re.findall(r'<path class="leader" d="([^"]+)"', markup):
+        points = [(float(a), float(b)) for a, b in re.findall(r"[ML]([\d.-]+) ([\d.-]+)", d)]
+        out.append((points[0][1], points[-1][1]))
+    return out
+
+
+def series_end_y(markup):
+    out = []
+    for d in re.findall(r'<path class="series" d="([^"]+)"', markup):
+        points = [(float(a), float(b)) for a, b in re.findall(r"[ML]([\d.-]+) ([\d.-]+)", d)]
+        out.append(points[-1][1])
+    return out
+
+
 class EquityChartTest(unittest.TestCase):
     def test_direct_labels_never_overlap_when_curves_end_together(self):
         """두 곡선이 같은 값으로 끝나는 것은 흔하다 — 라벨이 겹치면 둘 다 못 읽는다."""
@@ -95,7 +118,7 @@ class EquityChartTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             rows = [("2026-01-01", 500, 500), ("2026-01-02", 500, 500)]
             markup = render(write_run(tmp, rows))
-        self.assertEqual(2, len(re.findall(r'<path d="M', markup)))
+        self.assertEqual(2, len(re.findall(r'<path class="series"', markup)))
         self.assertNotIn("nan", markup.lower())
 
     def test_zero_trades_says_it_is_not_performance(self):
@@ -159,6 +182,52 @@ class EquityChartTest(unittest.TestCase):
         self.assertIn("N/A", markup)
         self.assertNotIn("+0.00%", markup)
 
+
+    def test_y_axis_ticks_are_round_numbers(self):
+        """9,613,346 같은 눈금은 읽는 사람이 쓸 수 없다 — 1·2·5 배수로 떨어져야 한다."""
+        rows = [("2026-01-01", 1_000_000, 1_000_000),
+                ("2026-01-02", 1_400_000, 1_400_000)]
+        with tempfile.TemporaryDirectory() as tmp:
+            markup = render(write_run(tmp, rows))
+        # 손계산: min 1,000,000 · max 1,400,000 → span 400,000, 양쪽 8% 패딩 →
+        # 968,000 ~ 1,432,000. 이상적 간격 464,000/4 = 116,000 이고 로그상 가장
+        # 가까운 단계는 100,000. 첫 눈금 ceil(968,000/100,000)=10 → 1,000,000.
+        self.assertEqual(["1,000,000", "1,100,000", "1,200,000",
+                          "1,300,000", "1,400,000"], tick_labels(markup))
+
+    def test_each_direct_label_is_joined_to_its_line_end(self):
+        """라벨을 벌리면 제 선에서 떨어진다 — 연결선이 없으면 어느 선인지 모른다."""
+        rows = [("2026-01-01", 100, 100), ("2026-01-02", 150, 150)]
+        with tempfile.TemporaryDirectory() as tmp:
+            markup = render(write_run(tmp, rows))
+        ends, joins, labels = series_end_y(markup), leaders(markup), label_positions(markup)
+        self.assertEqual(2, len(joins))
+        # 두 곡선이 같은 값으로 끝나므로 라벨은 벌어져 있다 — 떨어졌다는 전제 자체를 확인한다
+        self.assertAlmostEqual(ends[0], ends[1], places=1)
+        self.assertGreaterEqual(abs(joins[0][1] - joins[1][1]), 14)
+        for start, finish in joins:
+            self.assertIn(round(start, 1), [round(e, 1) for e in ends])
+            self.assertIn(round(finish + 4, 1), [round(y, 1) for _, y, _ in labels])
+
+    def test_direct_label_text_does_not_wear_the_series_colour(self):
+        """#eb6834 는 라이트 표면에서 3.12:1 — 마크로는 되지만 글자로는 안 된다."""
+        rows = [("2026-01-01", 100, 100), ("2026-01-02", 150, 120)]
+        with tempfile.TemporaryDirectory() as tmp:
+            markup = render(write_run(tmp, rows))
+        texts = re.findall(r"<text[^>]*class=\"direct\"[^>]*>", markup)
+        self.assertEqual(2, len(texts))
+        for tag in texts:
+            self.assertNotIn("--series-", tag, tag)
+
+    def test_a_date_from_the_csv_cannot_inject_markup(self):
+        """날짜는 CSV에서 온 자료다. 그대로 꽂으면 자료가 마크업이 된다."""
+        hostile = "2026-01-01</script><img src=x>"
+        rows = [(hostile, 100, 100), ("2026-01-02", 150, 120)]
+        with tempfile.TemporaryDirectory() as tmp:
+            markup = render(write_run(tmp, rows))
+        self.assertNotIn("<img", markup)
+        self.assertEqual(1, markup.count("</script>"))   # 진짜 닫는 태그 하나뿐
+        self.assertIn(hostile.replace("<", "&lt;").replace(">", "&gt;"), markup)
 
 if __name__ == "__main__":
     unittest.main()
