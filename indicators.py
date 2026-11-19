@@ -35,6 +35,24 @@ def ma_deviation(closes: pd.Series) -> dict:
     }
 
 
+def _return_between(series: pd.Series, start, end) -> float:
+    """start~end 두 날짜 사이 수익률(%). 맞출 수 없으면 NaN.
+
+    `asof` 는 그 날짜의 값이 없으면 직전 관측치를 준다 — 거래소 휴장일이
+    어긋나도 같은 기간을 비교하게 된다. 구간을 벗어나면 NaN이고,
+    신선도 판정은 price_fresh / benchmark_fresh 가 따로 한다.
+    """
+    if start is None or end is None:
+        return float("nan")
+    try:
+        first, last = series.asof(start), series.asof(end)
+    except (TypeError, ValueError):  # 인덱스 종류가 서로 다른 경우
+        return float("nan")
+    if not (pd.notna(first) and pd.notna(last)) or float(first) == 0:
+        return float("nan")
+    return (float(last) / float(first) - 1) * 100
+
+
 def trend_metrics(
     closes: pd.Series,
     benchmark_closes: pd.Series,
@@ -74,13 +92,21 @@ def trend_metrics(
         else float("nan")
     )
 
-    stock_return = (
-        (float(clean.iloc[-1]) / float(clean.iloc[-(relative_lookback + 1)]) - 1) * 100
-        if len(clean) > relative_lookback
-        else float("nan")
-    )
+    # 종목과 벤치마크를 각각 따로 세어 63칸 뒤를 집으면, 거래일 수가 다를 때
+    # 서로 다른 기간의 수익률을 빼게 된다. 창의 기준은 종목이고, 벤치마크는
+    # 그 두 '날짜'에 맞춰 읽는다 (해당일에 값이 없으면 직전 관측치 = 시점 기준 해석).
+    if len(clean) > relative_lookback:
+        window_start = clean.index[-(relative_lookback + 1)]
+        window_end = clean.index[-1]
+        stock_return = (
+            float(clean.iloc[-1]) / float(clean.iloc[-(relative_lookback + 1)]) - 1
+        ) * 100
+    else:
+        window_start = window_end = None
+        stock_return = float("nan")
+
     benchmark_return = (
-        (float(benchmark.iloc[-1]) / float(benchmark.iloc[-(relative_lookback + 1)]) - 1) * 100
+        _return_between(benchmark, window_start, window_end)
         if len(benchmark) > relative_lookback
         else float("nan")
     )

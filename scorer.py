@@ -55,7 +55,9 @@ def valuation_score(info: dict) -> tuple[float, str]:
     fpe = info.get("forwardPE")
     peg = info.get("pegRatio")
 
-    if not fpe or fpe <= 0:
+    # NaN은 truthy고 `nan <= 0` 은 False라 `not fpe or fpe <= 0` 을 그냥 통과했다.
+    # 그러면 아래 _clamp가 ValueError로 터진다 — 결측은 예외가 아니라 N/A여야 한다.
+    if not _is_finite(fpe) or fpe <= 0:
         return 50.0, "N/A"
 
     # Forward PE → raw score
@@ -64,7 +66,7 @@ def valuation_score(info: dict) -> tuple[float, str]:
     )
 
     # PEG blends in when available (growth-adjusted view)
-    if peg and peg > 0:
+    if _is_finite(peg) and peg > 0:
         peg_score = _clamp(95 - peg * 25)
         score = pe_score * 0.55 + peg_score * 0.45
         detail = f"fPE={fpe:.1f} PEG={peg:.2f}"
@@ -103,8 +105,9 @@ def technical_score(
     # Distance from 200MA: below 200MA = attractive
     ma_s = _clamp(65 - dev200 * 0.9)
 
-    # Golden cross bonus
-    if ma["golden_cross"]:
+    # Golden cross bonus — 가산점이라 없으면 안 주면 된다.
+    # dev200은 .get()인데 여기만 직접 접근이라 trend_metrics() 결과를 넘기면 KeyError였다.
+    if ma.get("golden_cross"):
         ma_s = _clamp(ma_s + 5)
 
     score = rsi_s * 0.35 + stoch_s * 0.35 + ma_s * 0.30

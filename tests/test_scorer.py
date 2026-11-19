@@ -33,6 +33,17 @@ class TechnicalScoreTest(unittest.TestCase):
         self.assertIsNone(score)
         self.assertEqual("N/A: RSI", detail)
 
+    def test_missing_golden_cross_key_skips_the_bonus_instead_of_raising(self):
+        # trend_metrics() 결과에는 golden_cross가 없다. 직접 접근하던 시절엔
+        # KeyError로 터졌다 — 가산점이니 없으면 안 주면 된다.
+        without = technical_score(50.0, 40.0, 45.0, {"dev200": 5.0})[0]
+        off = technical_score(50.0, 40.0, 45.0, {"dev200": 5.0, "golden_cross": False})[0]
+        on = technical_score(50.0, 40.0, 45.0, {"dev200": 5.0, "golden_cross": True})[0]
+
+        self.assertEqual(off, without)
+        # 보너스 +5점이 ma_s에 붙고 ma_s 가중치는 0.30 → 1.5점 차이
+        self.assertAlmostEqual(on - without, 1.5)
+
     def test_non_finite_stochastic_is_not_scored(self):
         score, detail = technical_score(50.0, float("inf"), 45.0, VALID_MA)
 

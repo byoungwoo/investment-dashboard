@@ -9,7 +9,60 @@ from scorer import (
     price_score,
     technical_score,
     to_grade,
+    valuation_score,
 )
+
+
+class ValuationScoreTest(unittest.TestCase):
+    """Price Score의 50%인데 직접 회귀 테스트가 없던 자리."""
+
+    def test_forward_pe_only(self):
+        # fPE=25 → 110 - 25*1.8 = 110 - 45 = 65.0
+        score, detail = valuation_score({"forwardPE": 25.0})
+
+        self.assertAlmostEqual(score, 65.0)
+        self.assertEqual(detail, "fPE=25.0")
+
+    def test_peg_blends_in(self):
+        # pe   = 110 - 20*1.8 = 74.0
+        # peg  = 95 - 1.5*25  = 57.5
+        # 합성 = 74.0*0.55 + 57.5*0.45 = 40.7 + 25.875 = 66.575
+        score, detail = valuation_score({"forwardPE": 20.0, "pegRatio": 1.5})
+
+        self.assertAlmostEqual(score, 66.575)
+        self.assertEqual(detail, "fPE=20.0 PEG=1.50")
+
+    def test_expensive_branch_is_continuous_at_fifty(self):
+        # fPE=50 은 두 번째 식: 20 - (50-50)*0.3 = 20.0
+        # fPE=60 →            20 - 10*0.3      = 17.0
+        self.assertAlmostEqual(valuation_score({"forwardPE": 50.0})[0], 20.0)
+        self.assertAlmostEqual(valuation_score({"forwardPE": 60.0})[0], 17.0)
+
+    def test_negative_forward_pe_is_not_measured(self):
+        # IREN처럼 적자기업은 forwardPE가 음수 → 50점 + N/A 로 드러낸다
+        score, detail = valuation_score({"forwardPE": -12.0})
+
+        self.assertEqual(score, 50.0)
+        self.assertEqual(detail, "N/A")
+
+    def test_nan_forward_pe_returns_na_instead_of_raising(self):
+        # NaN은 truthy고 `nan <= 0` 은 False라 예전엔 가드를 통과해
+        # _clamp가 ValueError를 던졌다. yfinance info는 NaN을 흔히 돌려준다.
+        score, detail = valuation_score({"forwardPE": math.nan})
+
+        self.assertEqual(score, 50.0)
+        self.assertEqual(detail, "N/A")
+
+    def test_missing_forward_pe_returns_na(self):
+        self.assertEqual(valuation_score({})[0], 50.0)
+        self.assertEqual(valuation_score({"forwardPE": None})[1], "N/A")
+
+    def test_nan_peg_is_ignored_not_blended(self):
+        # PEG가 NaN이면 Forward PE 단독 점수와 같아야 한다 (65.0)
+        score, detail = valuation_score({"forwardPE": 25.0, "pegRatio": math.nan})
+
+        self.assertAlmostEqual(score, 65.0)
+        self.assertEqual(detail, "fPE=25.0")
 
 
 class TechnicalScoreTest(unittest.TestCase):
